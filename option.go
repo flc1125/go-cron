@@ -37,11 +37,18 @@ func WithParser(p ScheduleParser) Option {
 	}
 }
 
-// WithChain specifies Job wrappers to apply to all jobs added to this cron.
-// Refer to the Chain* functions in this package for provided wrappers.
-func WithChain(wrappers ...JobWrapper) Option {
+// // WithChain specifies Job wrappers to apply to all jobs added to this cron.
+// // Refer to the Chain* functions in this package for provided wrappers.
+// func WithChain(wrappers ...JobWrapper) Option {
+// 	return func(c *Cron) {
+// 		c.chain = NewChain(wrappers...)
+// 	}
+// }
+
+// WithMiddleware specifies Middleware to apply to all jobs added to this cron.
+func WithMiddleware(middlewares ...Middleware) Option {
 	return func(c *Cron) {
-		c.chain = NewChain(wrappers...)
+		c.middlewares = middlewares
 	}
 }
 

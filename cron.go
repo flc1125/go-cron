@@ -11,9 +11,10 @@ import (
 // specified by the schedule. It may be started, stopped, and the entries may
 // be inspected while running.
 type Cron struct {
-	ctx       context.Context
-	entries   []*Entry
-	chain     Chain
+	ctx         context.Context
+	entries     []*Entry
+	middlewares []Middleware
+	// chain       Chain
 	stop      chan struct{}
 	add       chan *Entry
 	remove    chan EntryID
@@ -110,7 +111,6 @@ func New(opts ...Option) *Cron {
 	c := &Cron{
 		ctx:       context.Background(),
 		entries:   nil,
-		chain:     NewChain(),
 		add:       make(chan *Entry),
 		stop:      make(chan struct{}),
 		snapshot:  make(chan chan []Entry),
@@ -154,7 +154,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
 	entry := &Entry{
 		ID:         c.nextID,
 		Schedule:   schedule,
-		WrappedJob: c.chain.Then(cmd),
+		WrappedJob: Chain(c.middlewares...)(cmd),
 		Job:        cmd,
 	}
 	if !c.running {
