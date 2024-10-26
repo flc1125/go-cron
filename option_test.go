@@ -11,9 +11,10 @@ import (
 )
 
 func TestWithContext(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "key", "value") // nolint:revive
+	type key struct{}
+	ctx := context.WithValue(context.Background(), key{}, "value")
 	c := New(WithContext(ctx))
-	assert.Equal(t, "value", c.ctx.Value("key"))
+	assert.Equal(t, "value", c.ctx.Value(key{}))
 }
 
 func TestWithLocation(t *testing.T) {
