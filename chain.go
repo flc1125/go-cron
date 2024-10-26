@@ -8,38 +8,25 @@ import (
 	"time"
 )
 
-// JobWrapper decorates the given Job with some behavior.
-type JobWrapper func(Job) Job
+// Middleware is a chainable behavior modifier for jobs.
+type Middleware func(Job) Job
 
-// Chain is a sequence of JobWrappers that decorates submitted jobs with
-// cross-cutting behaviors like logging or synchronization.
-type Chain struct {
-	wrappers []JobWrapper
-}
-
-// NewChain returns a Chain consisting of the given JobWrappers.
-func NewChain(c ...JobWrapper) Chain {
-	return Chain{c}
-}
-
-// Then decorates the given job with all JobWrappers in the chain.
+// Chain is a helper function to compose Middlewares. It returns a Middleware that
+// applies the Middlewares in order.
 //
-// This:
-//
-//	NewChain(m1, m2, m3).Then(job)
-//
-// is equivalent to:
-//
-//	m1(m2(m3(job)))
-func (c Chain) Then(j Job) Job {
-	for i := range c.wrappers {
-		j = c.wrappers[len(c.wrappers)-i-1](j)
+//	Chain(m1, m2, m3) => m1(m2(m3(job)))
+func Chain(m ...Middleware) Middleware {
+	return func(next Job) Job {
+		for i := len(m) - 1; i >= 0; i-- {
+			next = m[i](next)
+		}
+		return next
 	}
-	return j
 }
 
 // Recover panics in wrapped jobs and log them with the provided logger.
-func Recover(logger Logger) JobWrapper {
+// Deprecated: recovery.New()
+func Recover(logger Logger) Middleware {
 	return func(j Job) Job {
 		return JobFunc(func(ctx context.Context) error {
 			defer func() {
@@ -62,7 +49,7 @@ func Recover(logger Logger) JobWrapper {
 // DelayIfStillRunning serializes jobs, delaying subsequent runs until the
 // previous one is complete. Jobs running after a delay of more than a minute
 // have the delay logged at Info.
-func DelayIfStillRunning(logger Logger) JobWrapper {
+func DelayIfStillRunning(logger Logger) Middleware {
 	return func(j Job) Job {
 		var mu sync.Mutex
 		return JobFunc(func(ctx context.Context) error {
@@ -79,7 +66,7 @@ func DelayIfStillRunning(logger Logger) JobWrapper {
 
 // SkipIfStillRunning skips an invocation of the Job if a previous invocation is
 // still running. It logs skips to the given logger at Info level.
-func SkipIfStillRunning(logger Logger) JobWrapper {
+func SkipIfStillRunning(logger Logger) Middleware {
 	return func(j Job) Job {
 		ch := make(chan struct{}, 1)
 		ch <- struct{}{}
