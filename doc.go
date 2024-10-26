@@ -5,11 +5,11 @@ Package cron implements a cron spec parser and job runner.
 
 To download the specific tagged release, run:
 
-	go get github.com/flc1125/go-cron
+	go get github.com/flc1125/go-cron/v4
 
 Import it in your program as:
 
-	import "flc1125/go-cron"
+	import "github.com/flc1125/go-cron/v4"
 
 It requires Go 1.11 or later due to usage of Go Modules.
 
