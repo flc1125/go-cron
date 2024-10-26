@@ -1,9 +1,11 @@
 name: Go Test
 on:
   push:
-    branches: [ master, feature/* ]
+    branches:
+      - 4.x
   pull_request:
-    branches: [ master ]
+    branches:
+      - 4.x
 env:
   GOPROXY: "https://proxy.golang.org"
 
