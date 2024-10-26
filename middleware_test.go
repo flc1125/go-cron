@@ -113,12 +113,20 @@ func TestChainDelayIfStillRunning(t *testing.T) {
 	t.Run("second run immediate if first done", func(t *testing.T) {
 		var j countJob
 		wrappedJob := Chain(DelayIfStillRunning(DiscardLogger))(&j)
+		wg := sync.WaitGroup{}
+		wg.Add(2)
 		go func() {
-			go wrappedJob.Run(context.Background()) //nolint:errcheck
+			go func() {
+				defer wg.Done()
+				wrappedJob.Run(context.Background()) //nolint:errcheck
+			}()
 			time.Sleep(time.Millisecond)
-			go wrappedJob.Run(context.Background()) //nolint:errcheck
+			go func() {
+				defer wg.Done()
+				wrappedJob.Run(context.Background()) //nolint:errcheck
+			}()
 		}()
-		time.Sleep(3 * time.Millisecond) // Give both jobs 3ms to complete.
+		wg.Wait()
 		if c := j.Done(); c != 2 {
 			t.Errorf("expected job run twice, immediately, got %d", c)
 		}
@@ -126,24 +134,24 @@ func TestChainDelayIfStillRunning(t *testing.T) {
 
 	t.Run("second run delayed if first not done", func(t *testing.T) {
 		var j countJob
-		j.delay = 10 * time.Millisecond
+		j.delay = 100 * time.Millisecond
 		wrappedJob := Chain(DelayIfStillRunning(DiscardLogger))(&j)
 		go func() {
 			go wrappedJob.Run(context.Background()) //nolint:errcheck
-			time.Sleep(time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			go wrappedJob.Run(context.Background()) //nolint:errcheck
 		}()
 
-		// After 5ms, the first job is still in progress, and the second job was
+		// After 50ms, the first job is still in progress, and the second job was
 		// run but should be waiting for it to finish.
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		started, done := j.Started(), j.Done()
 		if started != 1 || done != 0 {
 			t.Error("expected first job started, but not finished, got", started, done)
 		}
 
 		// Verify that the second job completes.
-		time.Sleep(25 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 		started, done = j.Started(), j.Done()
 		if started != 2 || done != 2 {
 			t.Error("expected both jobs done, got", started, done)
@@ -156,7 +164,7 @@ func TestChainSkipIfStillRunning(t *testing.T) {
 		var j countJob
 		wrappedJob := Chain(SkipIfStillRunning(DiscardLogger))(&j)
 		go wrappedJob.Run(context.Background()) //nolint:errcheck
-		time.Sleep(2 * time.Millisecond)        // Give the job 2ms to complete.
+		time.Sleep(20 * time.Millisecond)       // Give the job 2ms to complete.
 		if c := j.Done(); c != 1 {
 			t.Errorf("expected job run once, immediately, got %d", c)
 		}
@@ -167,10 +175,10 @@ func TestChainSkipIfStillRunning(t *testing.T) {
 		wrappedJob := Chain(SkipIfStillRunning(DiscardLogger))(&j)
 		go func() {
 			go wrappedJob.Run(context.Background()) //nolint:errcheck
-			time.Sleep(time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			go wrappedJob.Run(context.Background()) //nolint:errcheck
 		}()
-		time.Sleep(3 * time.Millisecond) // Give both jobs 3ms to complete.
+		time.Sleep(30 * time.Millisecond) // Give both jobs 3ms to complete.
 		if c := j.Done(); c != 2 {
 			t.Errorf("expected job run twice, immediately, got %d", c)
 		}
