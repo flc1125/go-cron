@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Configuration options for creating a parser. Most options specify which
+// ParseOption Configuration options for creating a parser. Most options specify which
 // fields should be included, while others enable features. If a field is not
 // included the parser will assume a default value. These options do not change
 // the order fields are parse in.
@@ -44,7 +44,7 @@ var defaults = []string{
 	"*",
 }
 
-// A custom Parser that can be configured.
+// Parser A custom Parser that can be configured.
 type Parser struct {
 	options ParseOption
 }
@@ -56,18 +56,17 @@ type Parser struct {
 //
 // Examples
 //
-//  // Standard parser without descriptors
-//  specParser := NewParser(Minute | Hour | Dom | Month | Dow)
-//  sched, err := specParser.Parse("0 0 15 */3 *")
+//	// Standard parser without descriptors
+//	specParser := NewParser(Minute | Hour | Dom | Month | Dow)
+//	sched, err := specParser.Parse("0 0 15 */3 *")
 //
-//  // Same as above, just excludes time fields
-//  specParser := NewParser(Dom | Month | Dow)
-//  sched, err := specParser.Parse("15 */3 *")
+//	// Same as above, just excludes time fields
+//	specParser := NewParser(Dom | Month | Dow)
+//	sched, err := specParser.Parse("15 */3 *")
 //
-//  // Same as above, just makes Dow optional
-//  specParser := NewParser(Dom | Month | DowOptional)
-//  sched, err := specParser.Parse("15 */3")
-//
+//	// Same as above, just makes Dow optional
+//	specParser := NewParser(Dom | Month | DowOptional)
+//	sched, err := specParser.Parse("15 */3")
 func NewParser(options ParseOption) Parser {
 	optionals := 0
 	if options&DowOptional > 0 {
@@ -91,7 +90,7 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 	}
 
 	// Extract timezone if present
-	var loc = time.Local
+	loc := time.Local
 	if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
 		var err error
 		i := strings.Index(spec, " ")
@@ -247,7 +246,9 @@ func getField(field string, r bounds) (uint64, error) {
 }
 
 // getRange returns the bits indicated by the given expression:
-//   number | number "-" number [ "/" number ]
+//
+//	number | number "-" number [ "/" number ]
+//
 // or error parsing range.
 func getRange(expr string, r bounds) (uint64, error) {
 	var (
@@ -284,7 +285,7 @@ func getRange(expr string, r bounds) (uint64, error) {
 	switch len(rangeAndStep) {
 	case 1:
 		step = 1
-	case 2:
+	case 2: //nolint:mnd
 		step, err = mustParseInt(rangeAndStep[1])
 		if err != nil {
 			return 0, err
@@ -418,7 +419,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Dow:      all(dow),
 			Location: loc,
 		}, nil
-
 	}
 
 	const every = "@every "
