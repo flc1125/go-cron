@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+type Middleware func(Job) Job
+
+func Chain(m ...Middleware) Middleware {
+	return func(next Job) Job {
+		for i := len(m) - 1; i >= 0; i-- {
+			next = m[i](next)
+		}
+		return next
+	}
+}
+
 // JobWrapper decorates the given Job with some behavior.
 type JobWrapper func(Job) Job
 
