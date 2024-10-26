@@ -2,7 +2,7 @@ package cron
 
 import (
 	"context"
-	"io/ioutil" //nolint:staticcheck // todo: Waiting for refactoring
+	"io"
 	"log"
 	"reflect"
 	"sync"
@@ -58,13 +58,13 @@ func TestChainRecover(t *testing.T) {
 	})
 
 	t.Run("Recovering JobWrapper recovers", func(*testing.T) {
-		NewChain(Recover(PrintfLogger(log.New(ioutil.Discard, "", 0)))).
+		NewChain(Recover(PrintfLogger(log.New(io.Discard, "", 0)))).
 			Then(panickingJob).
 			Run(context.Background())
 	})
 
 	t.Run("composed with the *IfStillRunning wrappers", func(*testing.T) {
-		NewChain(Recover(PrintfLogger(log.New(ioutil.Discard, "", 0)))).
+		NewChain(Recover(PrintfLogger(log.New(io.Discard, "", 0)))).
 			Then(panickingJob).
 			Run(context.Background())
 	})

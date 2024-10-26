@@ -1,7 +1,7 @@
 package cron
 
 import (
-	"io/ioutil" //nolint:staticcheck // todo: Waiting for refactoring
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -12,7 +12,7 @@ import (
 var DefaultLogger = PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))
 
 // DiscardLogger can be used by callers to discard all log messages.
-var DiscardLogger = PrintfLogger(log.New(ioutil.Discard, "", 0))
+var DiscardLogger = PrintfLogger(log.New(io.Discard, "", 0))
 
 // Logger is the interface used in this package for logging, so that any backend
 // can be plugged in. It is a subset of the github.com/go-logr/logr interface.
