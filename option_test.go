@@ -40,7 +40,7 @@ func TestWithVerboseLogger(t *testing.T) {
 		t.Error("expected provided logger")
 	}
 
-	c.AddFunc("@every 1s", func(context.Context) {}) //nolint:errcheck
+	c.AddFunc("@every 1s", func(context.Context) error { return nil }) //nolint:errcheck
 	c.Start()
 	time.Sleep(OneSecond)
 	c.Stop()

@@ -45,7 +45,7 @@ func TestFuncPanicRecovery(t *testing.T) {
 		WithChain(Recover(newBufLogger(&buf))))
 	cron.Start()
 	defer cron.Stop()
-	cron.AddFunc("* * * * * ?", func(context.Context) { //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
 		panic("YOLO")
 	})
 
@@ -57,7 +57,7 @@ func TestFuncPanicRecovery(t *testing.T) {
 
 type DummyJob struct{}
 
-func (d DummyJob) Run(context.Context) {
+func (d DummyJob) Run(context.Context) error {
 	panic("YOLO")
 }
 
@@ -97,7 +97,10 @@ func TestStopCausesJobsToNotRun(t *testing.T) {
 	cron := newWithSeconds()
 	cron.Start()
 	cron.Stop()
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
+		defer wg.Done()
+		return nil
+	})
 
 	select {
 	case <-time.After(OneSecond):
@@ -113,7 +116,10 @@ func TestAddBeforeRunning(t *testing.T) {
 	wg.Add(1)
 
 	cron := newWithSeconds()
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
+		defer wg.Done()
+		return nil
+	})
 	cron.Start()
 	defer cron.Stop()
 
@@ -133,7 +139,10 @@ func TestAddWhileRunning(t *testing.T) {
 	cron := newWithSeconds()
 	cron.Start()
 	defer cron.Stop()
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 
 	select {
 	case <-time.After(OneSecond):
@@ -149,7 +158,10 @@ func TestAddWhileRunningWithDelay(t *testing.T) {
 	defer cron.Stop()
 	time.Sleep(5 * time.Second)
 	var calls int64
-	cron.AddFunc("* * * * * *", func(context.Context) { atomic.AddInt64(&calls, 1) }) //nolint:errcheck
+	cron.AddFunc("* * * * * *", func(context.Context) error { //nolint:errcheck
+		atomic.AddInt64(&calls, 1)
+		return nil
+	})
 
 	<-time.After(OneSecond)
 	if atomic.LoadInt64(&calls) != 1 {
@@ -163,7 +175,10 @@ func TestRemoveBeforeRunning(t *testing.T) {
 	wg.Add(1)
 
 	cron := newWithSeconds()
-	id, _ := cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() })
+	id, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
+		defer wg.Done()
+		return nil
+	})
 	cron.Remove(id)
 	cron.Start()
 	defer cron.Stop()
@@ -184,7 +199,10 @@ func TestRemoveWhileRunning(t *testing.T) {
 	cron := newWithSeconds()
 	cron.Start()
 	defer cron.Stop()
-	id, _ := cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() })
+	id, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
+		defer wg.Done()
+		return nil
+	})
 	cron.Remove(id)
 
 	select {
@@ -200,7 +218,10 @@ func TestSnapshotEntries(t *testing.T) {
 	wg.Add(1)
 
 	cron := New()
-	cron.AddFunc("@every 2s", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("@every 2s", func(context.Context) error { //nolint:errcheck
+		defer wg.Done()
+		return nil
+	})
 	cron.Start()
 	defer cron.Stop()
 
@@ -225,12 +246,24 @@ func TestMultipleEntries(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) {})            //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
-	id1, _ := cron.AddFunc("* * * * * ?", func(context.Context) { t.Fatal() })
-	id2, _ := cron.AddFunc("* * * * * ?", func(context.Context) { t.Fatal() })
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) {})          //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error {               //nolint:errcheck
+		wg.Done()
+		return nil
+	})
+	id1, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
+		t.Fatal()
+		return nil
+	})
+	id2, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
+		t.Fatal()
+		return nil
+	})
+	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 
 	cron.Remove(id1)
 	cron.Start()
@@ -250,9 +283,12 @@ func TestRunningJobTwice(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) {})            //nolint:errcheck
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) {})          //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })   //nolint:errcheck
+	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 
 	cron.Start()
 	defer cron.Stop()
@@ -269,12 +305,18 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) {})            //nolint:errcheck
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) {})          //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
-	cron.Schedule(Every(time.Minute), JobFunc(func(context.Context) {}))
-	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) { wg.Done() }))
-	cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) {}))
+	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })   //nolint:errcheck
+	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+		wg.Done()
+		return nil
+	})
+	cron.Schedule(Every(time.Minute), JobFunc(func(context.Context) error { return nil }))
+	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) error {
+		wg.Done()
+		return nil
+	}))
+	cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) error { return nil }))
 
 	cron.Start()
 	defer cron.Stop()
@@ -303,7 +345,10 @@ func TestLocalTimezone(t *testing.T) {
 		now.Second()+1, now.Second()+2, now.Minute(), now.Hour(), now.Day(), now.Month())
 
 	cron := newWithSeconds()
-	cron.AddFunc(spec, func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc(spec, func(context.Context) error { //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 	cron.Start()
 	defer cron.Stop()
 
@@ -337,7 +382,10 @@ func TestNonLocalTimezone(t *testing.T) {
 		now.Second()+1, now.Second()+2, now.Minute(), now.Hour(), now.Day(), now.Month())
 
 	cron := New(WithLocation(loc), WithParser(secondParser))
-	cron.AddFunc(spec, func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc(spec, func(context.Context) error { //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 	cron.Start()
 	defer cron.Stop()
 
@@ -360,8 +408,9 @@ type testJob struct {
 	name string
 }
 
-func (t testJob) Run(context.Context) {
+func (t testJob) Run(context.Context) error {
 	t.wg.Done()
+	return nil
 }
 
 // Test that adding an invalid job spec returns an error
@@ -379,7 +428,10 @@ func TestBlockingRun(t *testing.T) {
 	wg.Add(1)
 
 	cron := newWithSeconds()
-	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
+		wg.Done()
+		return nil
+	})
 
 	unblockChan := make(chan struct{})
 
@@ -403,8 +455,9 @@ func TestStartNoop(t *testing.T) {
 	tickChan := make(chan struct{}, 2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("* * * * * ?", func(context.Context) { //nolint:errcheck
+	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
 		tickChan <- struct{}{}
+		return nil
 	})
 
 	cron.Start()
@@ -494,8 +547,8 @@ func TestScheduleAfterRemoval(t *testing.T) {
 	var mu sync.Mutex
 
 	cron := newWithSeconds()
-	hourJob := cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) {}))
-	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) {
+	hourJob := cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) error { return nil }))
+	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) error {
 		mu.Lock()
 		defer mu.Unlock()
 		switch calls {
@@ -512,6 +565,7 @@ func TestScheduleAfterRemoval(t *testing.T) {
 		case 3:
 			panic("unexpected 3rd call")
 		}
+		return nil
 	}))
 
 	cron.Start()
@@ -538,8 +592,14 @@ func (*ZeroSchedule) Next(time.Time) time.Time {
 func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 	cron := newWithSeconds()
 	var calls int64
-	cron.AddFunc("* * * * * *", func(context.Context) { atomic.AddInt64(&calls, 1) }) //nolint:errcheck
-	cron.Schedule(new(ZeroSchedule), JobFunc(func(context.Context) { t.Error("expected zero task will not run") }))
+	cron.AddFunc("* * * * * *", func(context.Context) error { //nolint:errcheck
+		atomic.AddInt64(&calls, 1)
+		return nil
+	})
+	cron.Schedule(new(ZeroSchedule), JobFunc(func(context.Context) error {
+		t.Error("expected zero task will not run")
+		return nil
+	}))
 	cron.Start()
 	defer cron.Stop()
 	<-time.After(OneSecond)
@@ -575,11 +635,11 @@ func TestStopAndWait(t *testing.T) {
 
 	t.Run("a couple fast jobs added, still returns immediately", func(t *testing.T) {
 		cron := newWithSeconds()
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
 		cron.Start()
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
 		time.Sleep(time.Second)
 		ctx := cron.Stop()
 		select {
@@ -591,10 +651,13 @@ func TestStopAndWait(t *testing.T) {
 
 	t.Run("a couple fast jobs and a slow job added, waits for slow job", func(t *testing.T) {
 		cron := newWithSeconds()
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
 		cron.Start()
-		cron.AddFunc("* * * * * *", func(context.Context) { time.Sleep(2 * time.Second) }) //nolint:errcheck
-		cron.AddFunc("* * * * * *", func(context.Context) {})                              //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { //nolint:errcheck
+			time.Sleep(2 * time.Second)
+			return nil
+		})
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
 		time.Sleep(time.Second)
 
 		ctx := cron.Stop()
@@ -618,10 +681,13 @@ func TestStopAndWait(t *testing.T) {
 
 	t.Run("repeated calls to stop, waiting for completion and after", func(t *testing.T) {
 		cron := newWithSeconds()
-		cron.AddFunc("* * * * * *", func(context.Context) {})                              //nolint:errcheck
-		cron.AddFunc("* * * * * *", func(context.Context) { time.Sleep(2 * time.Second) }) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error {               //nolint:errcheck
+			time.Sleep(2 * time.Second)
+			return nil
+		})
 		cron.Start()
-		cron.AddFunc("* * * * * *", func(context.Context) {}) //nolint:errcheck
+		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
 		time.Sleep(time.Second)
 		ctx := cron.Stop()
 		ctx2 := cron.Stop()
