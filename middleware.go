@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Middleware is a chainable behavior modifier for jobs.
+// Middleware is a function that wraps a Job to provide additional functionality.
 type Middleware func(Job) Job
 
 // Chain is a helper function to compose Middlewares. It returns a Middleware that
