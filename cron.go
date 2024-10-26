@@ -32,11 +32,6 @@ type ScheduleParser interface {
 	Parse(spec string) (Schedule, error)
 }
 
-// Job is an interface for submitted cron jobs.
-type Job interface {
-	Run(ctx context.Context)
-}
-
 // Schedule describes a job's duty cycle.
 type Schedule interface {
 	// Next returns the next activation time, later than the given time.
@@ -132,16 +127,11 @@ func New(opts ...Option) *Cron {
 	return c
 }
 
-// FuncJob is a wrapper that turns a func() into a cron.Job
-type FuncJob func(ctx context.Context)
-
-func (f FuncJob) Run(ctx context.Context) { f(ctx) }
-
 // AddFunc adds a func to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque ID is returned that can be used to later remove it.
 func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context)) (EntryID, error) {
-	return c.AddJob(spec, FuncJob(cmd))
+	return c.AddJob(spec, JobFunc(cmd))
 }
 
 // AddJob adds a Job to the Cron to be run on the given schedule.

@@ -272,9 +272,9 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) {})            //nolint:errcheck
 	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) {})          //nolint:errcheck
 	cron.AddFunc("* * * * * ?", func(context.Context) { wg.Done() }) //nolint:errcheck
-	cron.Schedule(Every(time.Minute), FuncJob(func(context.Context) {}))
-	cron.Schedule(Every(time.Second), FuncJob(func(context.Context) { wg.Done() }))
-	cron.Schedule(Every(time.Hour), FuncJob(func(context.Context) {}))
+	cron.Schedule(Every(time.Minute), JobFunc(func(context.Context) {}))
+	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) { wg.Done() }))
+	cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) {}))
 
 	cron.Start()
 	defer cron.Stop()
@@ -494,8 +494,8 @@ func TestScheduleAfterRemoval(t *testing.T) {
 	var mu sync.Mutex
 
 	cron := newWithSeconds()
-	hourJob := cron.Schedule(Every(time.Hour), FuncJob(func(context.Context) {}))
-	cron.Schedule(Every(time.Second), FuncJob(func(context.Context) {
+	hourJob := cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) {}))
+	cron.Schedule(Every(time.Second), JobFunc(func(context.Context) {
 		mu.Lock()
 		defer mu.Unlock()
 		switch calls {
@@ -539,7 +539,7 @@ func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 	cron := newWithSeconds()
 	var calls int64
 	cron.AddFunc("* * * * * *", func(context.Context) { atomic.AddInt64(&calls, 1) }) //nolint:errcheck
-	cron.Schedule(new(ZeroSchedule), FuncJob(func(context.Context) { t.Error("expected zero task will not run") }))
+	cron.Schedule(new(ZeroSchedule), JobFunc(func(context.Context) { t.Error("expected zero task will not run") }))
 	cron.Start()
 	defer cron.Stop()
 	<-time.After(OneSecond)
