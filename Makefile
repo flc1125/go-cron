@@ -25,7 +25,7 @@ fmt:
 
 .PHONY: fumpt
 fumpt:
-	gofumpt -w -e "vendor" .
+	gofumpt -w -e .
 	@echo "✅ Formatting completed"
 
 .PHONY: nilaway-install
