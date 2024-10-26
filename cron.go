@@ -130,7 +130,7 @@ func New(opts ...Option) *Cron {
 // AddFunc adds a func to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque ID is returned that can be used to later remove it.
-func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context)) (EntryID, error) {
+func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error) (EntryID, error) {
 	return c.AddJob(spec, JobFunc(cmd))
 }
 
@@ -301,7 +301,7 @@ func (c *Cron) startJob(j Job) {
 	c.jobWaiter.Add(1)
 	go func() {
 		defer c.jobWaiter.Done()
-		j.Run(c.ctx)
+		j.Run(c.ctx) //nolint:errcheck
 	}()
 }
 
