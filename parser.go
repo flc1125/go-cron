@@ -285,7 +285,7 @@ func getRange(expr string, r bounds) (uint64, error) {
 	switch len(rangeAndStep) {
 	case 1:
 		step = 1
-	case 2:
+	case 2: //nolint:mnd
 		step, err = mustParseInt(rangeAndStep[1])
 		if err != nil {
 			return 0, err
@@ -419,7 +419,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Dow:      all(dow),
 			Location: loc,
 		}, nil
-
 	}
 
 	const every = "@every "
