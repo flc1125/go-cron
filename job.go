@@ -14,6 +14,8 @@ func (fn JobFunc) Run(ctx context.Context) error {
 	return fn(ctx)
 }
 
+// NoopJob is a job that does nothing.
+// it is useful for testing and examples.
 type NoopJob struct{}
 
 func (NoopJob) Run(context.Context) error {
