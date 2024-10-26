@@ -11,7 +11,7 @@ import (
 )
 
 func TestWithContext(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(context.Background(), "key", "value") // nolint:revive
 	c := New(WithContext(ctx))
 	assert.Equal(t, "value", c.ctx.Value("key"))
 }
