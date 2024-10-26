@@ -11,6 +11,7 @@ import (
 // specified by the schedule. It may be started, stopped, and the entries may
 // be inspected while running.
 type Cron struct {
+	ctx       context.Context
 	entries   []*Entry
 	chain     Chain
 	stop      chan struct{}
@@ -112,6 +113,7 @@ func (s byTime) Less(i, j int) bool {
 // See "cron.With*" to modify the default behavior.
 func New(opts ...Option) *Cron {
 	c := &Cron{
+		ctx:       context.Background(),
 		entries:   nil,
 		chain:     NewChain(),
 		add:       make(chan *Entry),
@@ -309,7 +311,7 @@ func (c *Cron) startJob(j Job) {
 	c.jobWaiter.Add(1)
 	go func() {
 		defer c.jobWaiter.Done()
-		j.Run(context.Background()) // todo: pass context from cron
+		j.Run(c.ctx)
 	}()
 }
 

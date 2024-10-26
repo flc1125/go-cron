@@ -6,7 +6,16 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestWithContext(t *testing.T) {
+	type key struct{}
+	ctx := context.WithValue(context.Background(), key{}, "value")
+	c := New(WithContext(ctx))
+	assert.Equal(t, "value", c.ctx.Value(key{}))
+}
 
 func TestWithLocation(t *testing.T) {
 	c := New(WithLocation(time.UTC))
