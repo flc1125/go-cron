@@ -465,10 +465,10 @@ func TestJob(t *testing.T) {
 	job5 := cron.Schedule(Every(5*time.Minute), testJob{wg, "job5"})
 
 	// Test getting an Entry pre-Start.
-	if actualName := cron.Entry(job2).Job.(testJob).name; actualName != "job2" {
+	if actualName := cron.Entry(job2).job.(testJob).name; actualName != "job2" {
 		t.Error("wrong job retrieved:", actualName)
 	}
-	if actualName := cron.Entry(job5).Job.(testJob).name; actualName != "job5" {
+	if actualName := cron.Entry(job5).job.(testJob).name; actualName != "job5" {
 		t.Error("wrong job retrieved:", actualName)
 	}
 
@@ -486,7 +486,7 @@ func TestJob(t *testing.T) {
 
 	var actuals []string // nolint:prealloc
 	for _, entry := range cron.Entries() {
-		actuals = append(actuals, entry.Job.(testJob).name)
+		actuals = append(actuals, entry.job.(testJob).name)
 	}
 
 	for i, expected := range expecteds {
@@ -496,10 +496,10 @@ func TestJob(t *testing.T) {
 	}
 
 	// Test getting Entries.
-	if actualName := cron.Entry(job2).Job.(testJob).name; actualName != "job2" {
+	if actualName := cron.Entry(job2).job.(testJob).name; actualName != "job2" {
 		t.Error("wrong job retrieved:", actualName)
 	}
-	if actualName := cron.Entry(job5).Job.(testJob).name; actualName != "job5" {
+	if actualName := cron.Entry(job5).job.(testJob).name; actualName != "job5" {
 		t.Error("wrong job retrieved:", actualName)
 	}
 }

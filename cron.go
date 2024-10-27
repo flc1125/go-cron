@@ -40,37 +40,6 @@ type Schedule interface {
 	Next(time.Time) time.Time
 }
 
-// EntryID identifies an entry within a Cron instance
-type EntryID int
-
-// Entry consists of a schedule and the func to execute on that schedule.
-type Entry struct {
-	// ID is the cron-assigned ID of this entry, which may be used to look up a
-	// snapshot or remove it.
-	ID EntryID
-
-	// Schedule on which this job should be run.
-	Schedule Schedule
-
-	// Next time the job will run, or the zero time if Cron has not been
-	// started or this entry's schedule is unsatisfiable
-	Next time.Time
-
-	// Prev is the last time this job was run, or the zero time if never.
-	Prev time.Time
-
-	// WrappedJob is the thing to run when the Schedule is activated.
-	WrappedJob Job
-
-	// Job is the thing that was submitted to cron.
-	// It is kept around so that user code that needs to get at the job later,
-	// e.g. via Entries() can do so.
-	Job Job
-}
-
-// Valid returns true if this is not the zero entry.
-func (e Entry) Valid() bool { return e.ID != 0 }
-
 // byTime is a wrapper for sorting the entry array by time
 // (with zero time at the end).
 type byTime []*Entry
@@ -156,12 +125,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	c.nextID++
-	entry := &Entry{
-		ID:         c.nextID,
-		Schedule:   schedule,
-		WrappedJob: Chain(c.middlewares...)(cmd),
-		Job:        cmd,
-	}
+	entry := newEntry(c.nextID, schedule, cmd, WithEntryMiddlewares(c.middlewares...))
 	if !c.running {
 		c.entries = append(c.entries, entry)
 	} else {
@@ -267,7 +231,7 @@ func (c *Cron) run() {
 					if e.Next.After(now) || e.Next.IsZero() {
 						break
 					}
-					c.startJob(e.WrappedJob)
+					c.startJob(e.WrappedJob())
 					e.Prev = e.Next
 					e.Next = e.Schedule.Next(now)
 					c.logger.Info("run", "now", now, "entry", e.ID, "next", e.Next)
