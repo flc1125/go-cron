@@ -6,6 +6,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func appendingJob(slice *[]int, value int) Job {
@@ -216,4 +218,11 @@ func TestChainSkipIfStillRunning(t *testing.T) {
 			t.Error("expected both jobs executed once, got", done1, "and", done2)
 		}
 	})
+}
+
+func TestMiddleware_NoopMiddleware(t *testing.T) {
+	err := NoopMiddleware()(JobFunc(func(context.Context) error {
+		return nil
+	})).Run(context.Background())
+	assert.NoError(t, err)
 }
