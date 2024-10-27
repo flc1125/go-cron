@@ -1,7 +1,6 @@
 package recovery
 
 import (
-	"bytes"
 	"context"
 	"strings"
 	"testing"
@@ -20,27 +19,27 @@ func (p panicJob) Run(context.Context) error {
 }
 
 func TestRecovery(t *testing.T) {
-	var buf bytes.Buffer
+	buf := logger.NewBuffer()
 	recovery := New(
-		WithLogger(logger.NewBufferLogger(&buf)),
+		WithLogger(logger.NewBufferLogger(buf)),
 	)
 
 	assert.NotPanics(t, func() {
-		assert.NoError(t, recovery(cron.JobFunc(func(context.Context) error {
+		_ = recovery(cron.JobFunc(func(context.Context) error {
 			panic("YOLO")
-		})).Run(context.Background()))
+		})).Run(context.Background())
 	})
 
 	assert.True(t, strings.Contains(buf.String(), "YOLO"))
 }
 
 func TestRecovery_FuncPanic(t *testing.T) {
-	var buf bytes.Buffer
+	buf := logger.NewBuffer()
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithMiddleware(
 			New(
-				WithLogger(logger.NewBufferLogger(&buf)),
+				WithLogger(logger.NewBufferLogger(buf)),
 			),
 		),
 	)
@@ -57,12 +56,12 @@ func TestRecovery_FuncPanic(t *testing.T) {
 }
 
 func TestRecovery_JobPanic(t *testing.T) {
-	var buf bytes.Buffer
+	buf := logger.NewBuffer()
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithMiddleware(
 			New(
-				WithLogger(logger.NewBufferLogger(&buf)),
+				WithLogger(logger.NewBufferLogger(buf)),
 			),
 		),
 	)
@@ -79,21 +78,16 @@ func TestRecovery_JobPanic(t *testing.T) {
 func TestRecovery_ChainPanic(t *testing.T) {
 	t.Run("default panic exits job", func(*testing.T) {
 		assert.Panics(t, func() {
-			assert.NotNil(t,
-				cron.Chain()(panicJob{}).Run(context.Background()),
-			)
+			_ = cron.Chain()(panicJob{}).Run(context.Background())
 		})
 	})
 
 	t.Run("recovering job wrapper recovers", func(*testing.T) {
-		var buf bytes.Buffer
-
+		var buf logger.Buffer
 		assert.NotPanics(t, func() {
-			assert.NoError(t,
-				cron.Chain(
-					New(WithLogger(logger.NewBufferLogger(&buf))),
-				)(panicJob{}).Run(context.Background()),
-			)
+			_ = cron.Chain(
+				New(WithLogger(logger.NewBufferLogger(&buf))),
+			)(panicJob{}).Run(context.Background())
 		})
 		assert.True(t, strings.Contains(buf.String(), "YOLO"))
 	})
