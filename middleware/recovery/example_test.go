@@ -11,7 +11,7 @@ func Example() {
 	c := cron.New()
 	c.Use(recovery.New())
 
-	c.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
+	_, _ = c.AddFunc("* * * * * ?", func(context.Context) error {
 		panic("YOLO")
 	})
 
