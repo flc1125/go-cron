@@ -22,6 +22,14 @@ func Chain(m ...Middleware) Middleware {
 	}
 }
 
+// NoopMiddleware returns a Middleware that does nothing.
+// It is useful for testing and for composing with other Middlewares.
+func NoopMiddleware() Middleware {
+	return func(j Job) Job {
+		return j
+	}
+}
+
 // DelayIfStillRunning serializes jobs, delaying subsequent runs until the
 // previous one is complete. Jobs running after a delay of more than a minute
 // have the delay logged at Info.

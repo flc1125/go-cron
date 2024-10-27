@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Many tests schedule a job for every second, and then wait at most a second
@@ -284,6 +286,19 @@ func TestRunningMultipleSchedules(t *testing.T) {
 		t.Error("expected job fires 2 times")
 	case <-wait(wg):
 	}
+}
+
+func TestCron_Use(t *testing.T) {
+	cron := New()
+	assert.Len(t, cron.middlewares, 0)
+
+	cron.Use(NoopMiddleware(), NoopMiddleware(), func(next Job) Job {
+		return JobFunc(func(ctx context.Context) error {
+			return next.Run(ctx)
+		})
+	})
+
+	assert.Len(t, cron.middlewares, 3)
 }
 
 // Test that the cron is run in the local time zone (as opposed to UTC).
