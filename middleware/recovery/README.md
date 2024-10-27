@@ -5,24 +5,27 @@ The `recovery` middleware is a middleware for [go-cron](https://github.com/flc11
 ## Usage
 
 ```go
-package recovery_test
+package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/flc1125/go-cron/v4"
 	"github.com/flc1125/go-cron/v4/middleware/recovery"
 )
 
-func Example() {
+func main() {
 	c := cron.New()
 	c.Use(recovery.New())
 
-	c.AddFunc("* * * * * ?", func(ctx context.Context) error {
+	_, _ = c.AddFunc("* * * * * *", func(context.Context) error {
 		panic("YOLO")
 	})
 
 	c.Start()
 	defer c.Stop()
+
+	time.Sleep(2 * time.Second)
 }
 ```
