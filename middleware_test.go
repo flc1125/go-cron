@@ -2,12 +2,12 @@ package cron
 
 import (
 	"context"
-	"io"
-	"log"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func appendingJob(slice *[]int, value int) Job {
@@ -41,32 +41,6 @@ func TestChain(t *testing.T) {
 	if !reflect.DeepEqual(nums, []int{1, 2, 3, 4}) {
 		t.Error("unexpected order of calls:", nums)
 	}
-}
-
-func TestChainRecover(t *testing.T) {
-	panickingJob := JobFunc(func(context.Context) error {
-		panic("panickingJob panics")
-	})
-
-	t.Run("panic exits job by default", func(t *testing.T) {
-		defer func() {
-			if err := recover(); err == nil {
-				t.Errorf("panic expected, but none received")
-			}
-		}()
-		Chain()(panickingJob).
-			Run(context.Background()) //nolint:errcheck
-	})
-
-	t.Run("Recovering JobWrapper recovers", func(*testing.T) {
-		Chain(Recover(PrintfLogger(log.New(io.Discard, "", 0))))(panickingJob).
-			Run(context.Background()) //nolint:errcheck
-	})
-
-	t.Run("composed with the *IfStillRunning wrappers", func(*testing.T) {
-		Chain(Recover(PrintfLogger(log.New(io.Discard, "", 0))))(panickingJob).
-			Run(context.Background()) //nolint:errcheck
-	})
 }
 
 type countJob struct {
@@ -244,4 +218,11 @@ func TestChainSkipIfStillRunning(t *testing.T) {
 			t.Error("expected both jobs executed once, got", done1, "and", done2)
 		}
 	})
+}
+
+func TestMiddleware_NoopMiddleware(t *testing.T) {
+	err := NoopMiddleware()(JobFunc(func(context.Context) error {
+		return nil
+	})).Run(context.Background())
+	assert.NoError(t, err)
 }

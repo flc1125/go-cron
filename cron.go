@@ -127,6 +127,11 @@ func New(opts ...Option) *Cron {
 	return c
 }
 
+// Use adds a middleware to the chain of all jobs.
+func (c *Cron) Use(middleware ...Middleware) {
+	c.middlewares = append(c.middlewares, middleware...)
+}
+
 // AddFunc adds a func to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque ID is returned that can be used to later remove it.

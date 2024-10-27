@@ -2,8 +2,6 @@ package cron
 
 import (
 	"context"
-	"fmt"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -24,25 +22,11 @@ func Chain(m ...Middleware) Middleware {
 	}
 }
 
-// Recover panics in wrapped jobs and log them with the provided logger.
-// Deprecated: recovery.New()
-func Recover(logger Logger) Middleware {
+// NoopMiddleware returns a Middleware that does nothing.
+// It is useful for testing and for composing with other Middlewares.
+func NoopMiddleware() Middleware {
 	return func(j Job) Job {
-		return JobFunc(func(ctx context.Context) error {
-			defer func() {
-				if r := recover(); r != nil {
-					const size = 64 << 10
-					buf := make([]byte, size)
-					buf = buf[:runtime.Stack(buf, false)]
-					err, ok := r.(error)
-					if !ok {
-						err = fmt.Errorf("%v", r)
-					}
-					logger.Error(err, "panic", "stack", "...\n"+string(buf))
-				}
-			}()
-			return j.Run(ctx)
-		})
+		return j
 	}
 }
 

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Many tests schedule a job for every second, and then wait at most a second
@@ -17,6 +17,8 @@ import (
 // compensate for a few milliseconds of runtime.
 const OneSecond = 1*time.Second + 50*time.Millisecond //nolint:revive
 
+// syncWriter is a threadsafe writer.
+// Deprecated: use logger.NewBufferLogger instead.
 type syncWriter struct {
 	wr bytes.Buffer
 	m  sync.Mutex
@@ -33,48 +35,6 @@ func (sw *syncWriter) String() string {
 	sw.m.Lock()
 	defer sw.m.Unlock()
 	return sw.wr.String()
-}
-
-func newBufLogger(sw *syncWriter) Logger {
-	return PrintfLogger(log.New(sw, "", log.LstdFlags))
-}
-
-func TestFuncPanicRecovery(t *testing.T) {
-	var buf syncWriter
-	cron := New(WithParser(secondParser),
-		WithMiddleware(Recover(newBufLogger(&buf))))
-	cron.Start()
-	defer cron.Stop()
-	cron.AddFunc("* * * * * ?", func(context.Context) error { //nolint:errcheck
-		panic("YOLO")
-	})
-
-	time.Sleep(OneSecond)
-	if !strings.Contains(buf.String(), "YOLO") {
-		t.Error("expected a panic to be logged, got none")
-	}
-}
-
-type DummyJob struct{}
-
-func (d DummyJob) Run(context.Context) error {
-	panic("YOLO")
-}
-
-func TestJobPanicRecovery(t *testing.T) {
-	var job DummyJob
-
-	var buf syncWriter
-	cron := New(WithParser(secondParser),
-		WithMiddleware(Recover(newBufLogger(&buf))))
-	cron.Start()
-	defer cron.Stop()
-	cron.AddJob("* * * * * ?", job) //nolint:errcheck
-
-	time.Sleep(OneSecond)
-	if !strings.Contains(buf.String(), "YOLO") {
-		t.Error("expected a panic to be logged, got none")
-	}
 }
 
 // Start and stop cron with no entries.
@@ -326,6 +286,19 @@ func TestRunningMultipleSchedules(t *testing.T) {
 		t.Error("expected job fires 2 times")
 	case <-wait(wg):
 	}
+}
+
+func TestCron_Use(t *testing.T) {
+	cron := New()
+	assert.Len(t, cron.middlewares, 0)
+
+	cron.Use(NoopMiddleware(), NoopMiddleware(), func(next Job) Job {
+		return JobFunc(func(ctx context.Context) error {
+			return next.Run(ctx)
+		})
+	})
+
+	assert.Len(t, cron.middlewares, 3)
 }
 
 // Test that the cron is run in the local time zone (as opposed to UTC).
