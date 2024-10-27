@@ -2,6 +2,7 @@ package cron
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -42,12 +43,12 @@ func TestEntry_Context(t *testing.T) {
 
 func TestEntry_ContextUseCron(t *testing.T) {
 	cron := newWithSeconds()
-	var e1, e2 *Entry
+	var e1, e2 atomic.Value
 	_, err := cron.AddFunc("* * * * *", func(ctx context.Context) error {
 		entry, ok := EntryFromContext(ctx)
 		assert.True(t, ok)
 		assert.True(t, entry.Valid())
-		e1 = entry
+		e1.Store(entry)
 
 		t.Logf("entry id: %d", entry.ID)
 
@@ -59,7 +60,7 @@ func TestEntry_ContextUseCron(t *testing.T) {
 		entry, ok := EntryFromContext(ctx)
 		assert.True(t, ok)
 		assert.True(t, entry.Valid())
-		e2 = entry
+		e2.Store(entry)
 
 		t.Logf("entry id: %d", entry.ID)
 
@@ -74,5 +75,5 @@ func TestEntry_ContextUseCron(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// ensure the entries are different
-	assert.NotEqual(t, e1.ID, e2.ID)
+	assert.NotEqual(t, e1.Load().(*Entry).ID, e2.Load().(*Entry).ID)
 }
