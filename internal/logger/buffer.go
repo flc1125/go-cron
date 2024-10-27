@@ -30,5 +30,5 @@ func (b *Buffer) String() string {
 }
 
 func NewBufferLogger(buffer *Buffer) cron.Logger {
-	return cron.PrintfLogger(log.New(buffer, "", log.LstdFlags))
+	return cron.VerbosePrintfLogger(log.New(buffer, "", log.LstdFlags))
 }
