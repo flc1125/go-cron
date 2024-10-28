@@ -102,14 +102,14 @@ func (c *Cron) Use(middleware ...Middleware) {
 
 // AddFunc adds a func to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
-// An opaque ID is returned that can be used to later remove it.
+// An opaque id is returned that can be used to later remove it.
 func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error) (EntryID, error) {
 	return c.AddJob(spec, JobFunc(cmd))
 }
 
 // AddJob adds a Job to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
-// An opaque ID is returned that can be used to later remove it.
+// An opaque id is returned that can be used to later remove it.
 func (c *Cron) AddJob(spec string, cmd Job) (EntryID, error) {
 	schedule, err := c.parser.Parse(spec)
 	if err != nil {
@@ -130,7 +130,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
 	} else {
 		c.add <- entry
 	}
-	return entry.ID
+	return entry.ID()
 }
 
 // Entries returns a snapshot of the cron entries.
@@ -153,7 +153,7 @@ func (c *Cron) Location() *time.Location {
 // Entry returns a snapshot of the given entry, or nil if it couldn't be found.
 func (c *Cron) Entry(id EntryID) Entry {
 	for _, entry := range c.Entries() {
-		if id == entry.ID {
+		if id == entry.ID() {
 			return entry
 		}
 	}
@@ -203,7 +203,7 @@ func (c *Cron) run() {
 	now := c.now()
 	for _, entry := range c.entries {
 		entry.Next = entry.Schedule.Next(now)
-		c.logger.Info("schedule", "now", now, "entry", entry.ID, "next", entry.Next)
+		c.logger.Info("schedule", "now", now, "entry", entry.ID(), "next", entry.Next)
 	}
 
 	for {
@@ -233,7 +233,7 @@ func (c *Cron) run() {
 					c.startJob(e.WrappedJob())
 					e.Prev = e.Next
 					e.Next = e.Schedule.Next(now)
-					c.logger.Info("run", "now", now, "entry", e.ID, "next", e.Next)
+					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.Next)
 				}
 
 			case newEntry := <-c.add:
@@ -241,7 +241,7 @@ func (c *Cron) run() {
 				now = c.now()
 				newEntry.Next = newEntry.Schedule.Next(now)
 				c.entries = append(c.entries, newEntry)
-				c.logger.Info("added", "now", now, "entry", newEntry.ID, "next", newEntry.Next)
+				c.logger.Info("added", "now", now, "entry", newEntry.ID(), "next", newEntry.Next)
 
 			case replyChan := <-c.snapshot:
 				replyChan <- c.entrySnapshot()
@@ -307,7 +307,7 @@ func (c *Cron) entrySnapshot() []Entry {
 func (c *Cron) removeEntry(id EntryID) {
 	var entries []*Entry
 	for _, e := range c.entries {
-		if e.ID != id {
+		if e.ID() != id {
 			entries = append(entries, e)
 		}
 	}

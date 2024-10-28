@@ -31,7 +31,7 @@ func TestEntry_Context(t *testing.T) {
 			entry = newEntry(tt.id, nil, JobFunc(func(ctx context.Context) error {
 				entry, ok := EntryFromContext(ctx)
 				assert.True(t, ok)
-				assert.Equal(t, entry.ID, tt.id)
+				assert.Equal(t, entry.ID(), tt.id)
 
 				return nil
 			}))
@@ -53,7 +53,7 @@ func TestEntry_ContextUseCron(t *testing.T) {
 		assert.True(t, entry.Valid())
 		e1.Store(entry)
 
-		t.Logf("entry id: %d", entry.ID)
+		t.Logf("entry id: %d", entry.ID())
 
 		return nil
 	})
@@ -66,7 +66,7 @@ func TestEntry_ContextUseCron(t *testing.T) {
 		assert.True(t, entry.Valid())
 		e2.Store(entry)
 
-		t.Logf("entry id: %d", entry.ID)
+		t.Logf("entry id: %d", entry.ID())
 
 		return nil
 	})
@@ -81,5 +81,5 @@ func TestEntry_ContextUseCron(t *testing.T) {
 	// ensure the entries are different
 	assert.NotNil(t, e1.Load())
 	assert.NotNil(t, e2.Load())
-	assert.NotEqual(t, e1.Load().(*Entry).ID, e2.Load().(*Entry).ID)
+	assert.NotEqual(t, e1.Load().(*Entry).id, e2.Load().(*Entry).id)
 }

@@ -17,7 +17,7 @@ func main() {
 	_, _ = c.AddFunc("* * * * * *", func(ctx context.Context) error {
 		entry, ok := cron.EntryFromContext(ctx)
 		if ok {
-			log.Println(fmt.Sprintf("entry id: %d", entry.ID))
+			log.Println(fmt.Sprintf("entry id: %d", entry.ID()))
 		}
 		return nil
 	})

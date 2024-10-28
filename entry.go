@@ -10,9 +10,9 @@ type EntryID int
 
 // Entry consists of a schedule and the func to execute on that schedule.
 type Entry struct {
-	// ID is the cron-assigned ID of this entry, which may be used to look up a
+	// id is the cron-assigned id of this entry, which may be used to look up a
 	// snapshot or remove it.
-	ID EntryID
+	id EntryID
 
 	// Schedule on which this job should be run.
 	Schedule Schedule
@@ -47,7 +47,7 @@ func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 // newEntry creates a new entry with the given schedule and job.
 func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
 	entry := &Entry{
-		ID:       id,
+		id:       id,
 		Schedule: schedule,
 		job:      job,
 	}
@@ -70,12 +70,16 @@ func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entr
 	return entry
 }
 
+func (e *Entry) ID() EntryID {
+	return e.id
+}
+
 func (e *Entry) WrappedJob() Job {
 	return e.wrappedJob
 }
 
 // Valid returns true if this is not the zero entry.
-func (e *Entry) Valid() bool { return e.ID != 0 }
+func (e *Entry) Valid() bool { return e.id != 0 }
 
 // ------------------------------------ Entry Context ------------------------------------
 
