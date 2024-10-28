@@ -30,7 +30,8 @@ go get github.com/flc1125/go-cron/v4
 
 ## Usage
 
-```gopackage main
+```go
+package main
 
 import (
 	"context"
