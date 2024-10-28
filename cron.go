@@ -14,18 +14,17 @@ type Cron struct {
 	ctx         context.Context
 	entries     []*Entry
 	middlewares []Middleware
-	// chain       Chain
-	stop      chan struct{}
-	add       chan *Entry
-	remove    chan EntryID
-	snapshot  chan chan []Entry
-	running   bool
-	logger    Logger
-	runningMu sync.Mutex
-	location  *time.Location
-	parser    ScheduleParser
-	nextID    EntryID
-	jobWaiter sync.WaitGroup
+	stop        chan struct{}
+	add         chan *Entry
+	remove      chan EntryID
+	snapshot    chan chan []Entry
+	running     bool
+	logger      Logger
+	runningMu   sync.Mutex
+	location    *time.Location
+	parser      ScheduleParser
+	nextID      EntryID
+	jobWaiter   sync.WaitGroup
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
