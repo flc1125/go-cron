@@ -47,22 +47,3 @@ func DelayIfStillRunning(logger Logger) Middleware {
 		})
 	}
 }
-
-// SkipIfStillRunning skips an invocation of the Job if a previous invocation is
-// still running. It logs skips to the given logger at Info level.
-func SkipIfStillRunning(logger Logger) Middleware {
-	return func(j Job) Job {
-		ch := make(chan struct{}, 1)
-		ch <- struct{}{}
-		return JobFunc(func(ctx context.Context) error {
-			select {
-			case v := <-ch:
-				defer func() { ch <- v }()
-				return j.Run(ctx)
-			default:
-				logger.Info("skip")
-				return nil
-			}
-		})
-	}
-}
