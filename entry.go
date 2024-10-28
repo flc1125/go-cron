@@ -10,21 +10,21 @@ type EntryID int
 
 // Entry consists of a schedule and the func to execute on that schedule.
 type Entry struct {
-	// ID is the cron-assigned ID of this entry, which may be used to look up a
+	// id is the cron-assigned id of this entry, which may be used to look up a
 	// snapshot or remove it.
-	ID EntryID
+	id EntryID
 
-	// Schedule on which this job should be run.
-	Schedule Schedule
+	// schedule on which this job should be run.
+	schedule Schedule
 
-	// Next time the job will run, or the zero time if Cron has not been
+	// next time the job will run, or the zero time if Cron has not been
 	// started or this entry's schedule is unsatisfiable
-	Next time.Time
+	next time.Time
 
-	// Prev is the last time this job was run, or the zero time if never.
-	Prev time.Time
+	// prev is the last time this job was run, or the zero time if never.
+	prev time.Time
 
-	// wrappedJob is the thing to run when the Schedule is activated.
+	// wrappedJob is the thing to run when the schedule is activated.
 	wrappedJob Job
 
 	// job is the thing that was submitted to cron.
@@ -47,8 +47,8 @@ func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 // newEntry creates a new entry with the given schedule and job.
 func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
 	entry := &Entry{
-		ID:       id,
-		Schedule: schedule,
+		id:       id,
+		schedule: schedule,
 		job:      job,
 	}
 	for _, opt := range opts {
@@ -70,12 +70,32 @@ func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entr
 	return entry
 }
 
+func (e *Entry) ID() EntryID {
+	return e.id
+}
+
+// Valid returns true if this is not the zero entry.
+func (e *Entry) Valid() bool { return e.id != 0 }
+
+func (e *Entry) Schedule() Schedule {
+	return e.schedule
+}
+
+func (e *Entry) Next() time.Time {
+	return e.next
+}
+
+func (e *Entry) Prev() time.Time {
+	return e.prev
+}
+
 func (e *Entry) WrappedJob() Job {
 	return e.wrappedJob
 }
 
-// Valid returns true if this is not the zero entry.
-func (e *Entry) Valid() bool { return e.ID != 0 }
+func (e *Entry) Job() Job {
+	return e.job
+}
 
 // ------------------------------------ Entry Context ------------------------------------
 
