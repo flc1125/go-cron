@@ -9,6 +9,19 @@
 [![tests](https://github.com/flc1125/go-cron/actions/workflows/test.yml/badge.svg)](https://github.com/flc1125/go-cron/actions/workflows/test.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
+The cron library is a cron job library for Go. 
+
+It is a fork of [robfig/cron](https://github.com/robfig/cron) with some improvements.
+
+Thanks to [robfig/cron](https://github.com/robfig/cron) for the original work, and thanks to all the contributors.
+
+> [!IMPORTANT]  
+> `v4.x` may introduce situations that are not backward compatible.
+>
+> The reason for this is that we are using `v4.x` as a transitional version. In this version, we will try to improve the functionality of the components as much as possible until the release of `v5.x`.
+>
+> When releasing a new version, backward compatibility is the default behavior. If there are any incompatibilities, they will be indicated in the release notes.
+
 ## Installation
 
 ```bash
