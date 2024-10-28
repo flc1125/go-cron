@@ -17,7 +17,9 @@ import (
 
 func main() {
 	c := cron.New()
-	c.Use(recovery.New())
+	c.Use(recovery.New(
+		recovery.WithLogger(cron.DefaultLogger), // if not set, use cron.DefaultLogger
+	))
 
 	_, _ = c.AddFunc("* * * * * *", func(context.Context) error {
 		panic("YOLO")
@@ -28,4 +30,5 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 }
+
 ```

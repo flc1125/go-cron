@@ -1,11 +1,5 @@
 package cron
 
-import (
-	"context"
-	"sync"
-	"time"
-)
-
 // Middleware is a function that wraps a Job to provide additional functionality.
 type Middleware func(Job) Job
 
@@ -27,23 +21,5 @@ func Chain(m ...Middleware) Middleware {
 func NoopMiddleware() Middleware {
 	return func(j Job) Job {
 		return j
-	}
-}
-
-// DelayIfStillRunning serializes jobs, delaying subsequent runs until the
-// previous one is complete. Jobs running after a delay of more than a minute
-// have the delay logged at Info.
-func DelayIfStillRunning(logger Logger) Middleware {
-	return func(j Job) Job {
-		var mu sync.Mutex
-		return JobFunc(func(ctx context.Context) error {
-			start := time.Now()
-			mu.Lock()
-			defer mu.Unlock()
-			if dur := time.Since(start); dur > time.Minute {
-				logger.Info("delay", "duration", dur)
-			}
-			return j.Run(ctx)
-		})
 	}
 }
