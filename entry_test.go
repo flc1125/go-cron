@@ -2,9 +2,9 @@ package cron
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,7 +44,10 @@ func TestEntry_Context(t *testing.T) {
 func TestEntry_ContextUseCron(t *testing.T) {
 	cron := newWithSeconds()
 	var e1, e2 atomic.Value
+	var wg sync.WaitGroup
+	wg.Add(2)
 	_, err := cron.AddFunc("* * * * *", func(ctx context.Context) error {
+		defer wg.Done()
 		entry, ok := EntryFromContext(ctx)
 		assert.True(t, ok)
 		assert.True(t, entry.Valid())
@@ -57,6 +60,7 @@ func TestEntry_ContextUseCron(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = cron.AddFunc("* * * * *", func(ctx context.Context) error {
+		defer wg.Done()
 		entry, ok := EntryFromContext(ctx)
 		assert.True(t, ok)
 		assert.True(t, entry.Valid())
@@ -72,8 +76,10 @@ func TestEntry_ContextUseCron(t *testing.T) {
 	defer cron.Stop()
 
 	// wait for the job to run
-	time.Sleep(time.Second)
+	wg.Wait()
 
 	// ensure the entries are different
+	assert.NotNil(t, e1.Load())
+	assert.NotNil(t, e2.Load())
 	assert.NotEqual(t, e1.Load().(*Entry).ID, e2.Load().(*Entry).ID)
 }
