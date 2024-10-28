@@ -49,13 +49,13 @@ func (s byTime) Less(i, j int) bool {
 	// Two zero times should return false.
 	// Otherwise, zero is "greater" than any other time.
 	// (To sort it at the end of the list.)
-	if s[i].Next.IsZero() {
+	if s[i].next.IsZero() {
 		return false
 	}
-	if s[j].Next.IsZero() {
+	if s[j].next.IsZero() {
 		return true
 	}
-	return s[i].Next.Before(s[j].Next)
+	return s[i].next.Before(s[j].next)
 }
 
 // New returns a new Cron job runner, modified by the given options.
@@ -130,7 +130,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
 	} else {
 		c.add <- entry
 	}
-	return entry.ID()
+	return entry.id
 }
 
 // Entries returns a snapshot of the cron entries.
@@ -153,7 +153,7 @@ func (c *Cron) Location() *time.Location {
 // Entry returns a snapshot of the given entry, or nil if it couldn't be found.
 func (c *Cron) Entry(id EntryID) Entry {
 	for _, entry := range c.Entries() {
-		if id == entry.ID() {
+		if id == entry.id {
 			return entry
 		}
 	}
@@ -202,8 +202,8 @@ func (c *Cron) run() {
 	// Figure out the next activation times for each entry.
 	now := c.now()
 	for _, entry := range c.entries {
-		entry.Next = entry.Schedule.Next(now)
-		c.logger.Info("schedule", "now", now, "entry", entry.ID(), "next", entry.Next)
+		entry.next = entry.schedule.Next(now)
+		c.logger.Info("schedule", "now", now, "entry", entry.ID(), "next", entry.next)
 	}
 
 	for {
@@ -211,12 +211,12 @@ func (c *Cron) run() {
 		sort.Sort(byTime(c.entries))
 
 		var timer *time.Timer
-		if len(c.entries) == 0 || c.entries[0].Next.IsZero() {
+		if len(c.entries) == 0 || c.entries[0].next.IsZero() {
 			// If there are no entries yet, just sleep - it still handles new entries
 			// and stop requests.
 			timer = time.NewTimer(100000 * time.Hour)
 		} else {
-			timer = time.NewTimer(c.entries[0].Next.Sub(now))
+			timer = time.NewTimer(c.entries[0].next.Sub(now))
 		}
 
 		for {
@@ -227,21 +227,21 @@ func (c *Cron) run() {
 
 				// Run every entry whose next time was less than now
 				for _, e := range c.entries {
-					if e.Next.After(now) || e.Next.IsZero() {
+					if e.next.After(now) || e.next.IsZero() {
 						break
 					}
 					c.startJob(e.WrappedJob())
-					e.Prev = e.Next
-					e.Next = e.Schedule.Next(now)
-					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.Next)
+					e.prev = e.next
+					e.next = e.schedule.Next(now)
+					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.next)
 				}
 
 			case newEntry := <-c.add:
 				timer.Stop()
 				now = c.now()
-				newEntry.Next = newEntry.Schedule.Next(now)
+				newEntry.next = newEntry.schedule.Next(now)
 				c.entries = append(c.entries, newEntry)
-				c.logger.Info("added", "now", now, "entry", newEntry.ID(), "next", newEntry.Next)
+				c.logger.Info("added", "now", now, "entry", newEntry.ID(), "next", newEntry.next)
 
 			case replyChan := <-c.snapshot:
 				replyChan <- c.entrySnapshot()

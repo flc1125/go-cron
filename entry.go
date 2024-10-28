@@ -14,17 +14,17 @@ type Entry struct {
 	// snapshot or remove it.
 	id EntryID
 
-	// Schedule on which this job should be run.
-	Schedule Schedule
+	// schedule on which this job should be run.
+	schedule Schedule
 
-	// Next time the job will run, or the zero time if Cron has not been
+	// next time the job will run, or the zero time if Cron has not been
 	// started or this entry's schedule is unsatisfiable
-	Next time.Time
+	next time.Time
 
-	// Prev is the last time this job was run, or the zero time if never.
-	Prev time.Time
+	// prev is the last time this job was run, or the zero time if never.
+	prev time.Time
 
-	// wrappedJob is the thing to run when the Schedule is activated.
+	// wrappedJob is the thing to run when the schedule is activated.
 	wrappedJob Job
 
 	// job is the thing that was submitted to cron.
@@ -48,7 +48,7 @@ func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
 	entry := &Entry{
 		id:       id,
-		Schedule: schedule,
+		schedule: schedule,
 		job:      job,
 	}
 	for _, opt := range opts {
@@ -74,12 +74,28 @@ func (e *Entry) ID() EntryID {
 	return e.id
 }
 
+// Valid returns true if this is not the zero entry.
+func (e *Entry) Valid() bool { return e.id != 0 }
+
+func (e *Entry) Schedule() Schedule {
+	return e.schedule
+}
+
+func (e *Entry) Next() time.Time {
+	return e.next
+}
+
+func (e *Entry) Prev() time.Time {
+	return e.prev
+}
+
 func (e *Entry) WrappedJob() Job {
 	return e.wrappedJob
 }
 
-// Valid returns true if this is not the zero entry.
-func (e *Entry) Valid() bool { return e.id != 0 }
+func (e *Entry) Job() Job {
+	return e.job
+}
 
 // ------------------------------------ Entry Context ------------------------------------
 

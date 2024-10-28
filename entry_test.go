@@ -9,6 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestEntry_Attributes(t *testing.T) {
+	entry := newEntry(1, nil, JobFunc(func(ctx context.Context) error {
+		return nil
+	}))
+	assert.Equal(t, entry.ID(), EntryID(1))
+	assert.NotNil(t, entry.WrappedJob())
+	assert.NotNil(t, entry.Job())
+	assert.Nil(t, entry.Schedule())
+	assert.Zero(t, entry.Next())
+	assert.Zero(t, entry.Prev())
+	assert.True(t, entry.Valid())
+}
+
 func TestEntry_Context(t *testing.T) {
 	tests := []struct {
 		name string
