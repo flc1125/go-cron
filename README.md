@@ -77,4 +77,5 @@ func main() {
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
+- The MIT License (MIT). Please see [License File](LICENSE) for more information.
+- The original work is licensed under the MIT License (MIT). Please see [robfig/cron](https://github.com/robfig/cron) [License File](https://github.com/robfig/cron/blob/master/LICENSE)
