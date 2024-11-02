@@ -15,6 +15,7 @@ func main() {
 			recovery.New(),      // recover panic
 			nooverlapping.New(), // prevent job overlapping
 		),
+		cron.WithContext(context.Background()), // use custom context
 		// ... other options
 	)
 
@@ -32,7 +33,7 @@ func main() {
 	_, _ = c.AddFunc("* * * * * *", func(ctx context.Context) error {
 		// do something
 		return nil
-	})
+	}, recovery.New(), nooverlapping.New()) // use middleware for this job
 
 	// start cron
 	c.Start()
