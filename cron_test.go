@@ -288,6 +288,69 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	}
 }
 
+func TestCron_ScheduleWithMiddleware(t *testing.T) {
+	cron := newWithSeconds()
+	cron.Use(func(job Job) Job {
+		return JobFunc(func(ctx context.Context) error {
+			return job.Run(context.WithValue(ctx, "key", "value"))
+		})
+	})
+	wg := sync.WaitGroup{}
+	ch := make(chan struct{}, 6)
+
+	wg.Add(6)
+	assert.Len(t, ch, 0)
+
+	var testMiddleware = func(job Job) Job {
+		return JobFunc(func(ctx context.Context) error {
+			return job.Run(context.WithValue(ctx, "key", "value-v2"))
+		})
+	}
+
+	_, _ = cron.AddFunc("* * * * * ?", func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	})
+	_, _ = cron.AddJob("* * * * * ?", JobFunc(func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	}))
+	_ = cron.Schedule(Every(time.Second), JobFunc(func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	}))
+	_, _ = cron.AddFunc("* * * * * ?", func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value-v2", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	}, testMiddleware)
+	_, _ = cron.AddJob("* * * * * ?", JobFunc(func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value-v2", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	}), testMiddleware)
+	_ = cron.Schedule(Every(time.Second), JobFunc(func(ctx context.Context) error {
+		defer wg.Done()
+		assert.Equal(t, "value-v2", ctx.Value("key"))
+		ch <- struct{}{}
+		return nil
+	}), testMiddleware)
+
+	cron.Start()
+	defer cron.Stop()
+
+	wg.Wait()
+	assert.Len(t, ch, 6)
+}
+
 func TestCron_Use(t *testing.T) {
 	cron := New()
 	assert.Len(t, cron.middlewares, 0)
