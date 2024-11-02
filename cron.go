@@ -103,28 +103,30 @@ func (c *Cron) Use(middleware ...Middleware) {
 // AddFunc adds a func to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque id is returned that can be used to later remove it.
-func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error) (EntryID, error) {
-	return c.AddJob(spec, JobFunc(cmd))
+func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error, middlewares ...Middleware) (EntryID, error) {
+	return c.AddJob(spec, JobFunc(cmd), middlewares...)
 }
 
 // AddJob adds a Job to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque id is returned that can be used to later remove it.
-func (c *Cron) AddJob(spec string, cmd Job) (EntryID, error) {
+func (c *Cron) AddJob(spec string, cmd Job, middlewares ...Middleware) (EntryID, error) {
 	schedule, err := c.parser.Parse(spec)
 	if err != nil {
 		return 0, err
 	}
-	return c.Schedule(schedule, cmd), nil
+	return c.Schedule(schedule, cmd, middlewares...), nil
 }
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
 // The job is wrapped with the configured Chain.
-func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
+func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) EntryID {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	c.nextID++
-	entry := newEntry(c.nextID, schedule, cmd, WithEntryMiddlewares(c.middlewares...))
+	entry := newEntry(c.nextID, schedule, cmd, withEntryMiddlewares(
+		append(c.middlewares, middlewares...)...),
+	)
 	if !c.running {
 		c.entries = append(c.entries, entry)
 	} else {
