@@ -76,7 +76,7 @@ func TestNoOverlapping_Cases(t *testing.T) {
 		ch := make(chan struct{}, 10)
 		job := noOverlapping(cron.JobFunc(func(context.Context) error {
 			ch <- struct{}{}
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 			return nil
 		}))
 
@@ -88,7 +88,7 @@ func TestNoOverlapping_Cases(t *testing.T) {
 				assert.NoError(t, job.Run(ctx))
 			}()
 
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 
 			go func() {
 				defer wg.Done()
