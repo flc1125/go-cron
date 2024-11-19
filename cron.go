@@ -297,6 +297,11 @@ func (c *Cron) Stop() context.Context {
 	return ctx
 }
 
+// IsRunning returns true if the cron scheduler is started.
+func (c *Cron) IsRunning() bool {
+	return c.running
+}
+
 // entrySnapshot returns a copy of the current cron entry list.
 func (c *Cron) entrySnapshot() []Entry {
 	entries := make([]Entry, len(c.entries))
