@@ -766,6 +766,18 @@ func TestStopAndWait(t *testing.T) {
 	})
 }
 
+func TestCron_IsRunning(t *testing.T) {
+	c := New()
+
+	assert.False(t, c.IsRunning())
+
+	c.Start()
+	assert.True(t, c.IsRunning())
+
+	c.Stop()
+	assert.False(t, c.IsRunning())
+}
+
 func TestMultiThreadedStartAndStop(*testing.T) {
 	cron := New()
 	go cron.Run()
