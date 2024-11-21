@@ -13,6 +13,8 @@ type Mutex struct {
 	prefix string
 }
 
+var _ distributednooverlapping.Mutex = (*Mutex)(nil)
+
 type Option func(*Mutex)
 
 func WithPrefix(prefix string) Option {
@@ -31,7 +33,7 @@ var _ distributednooverlapping.Mutex = (*Mutex)(nil)
 func New(redis redis.UniversalClient, opts ...Option) *Mutex {
 	mutex := &Mutex{
 		redis:  redis,
-		prefix: "cron:mutex",
+		prefix: "cron:",
 	}
 	for _, opt := range opts {
 		opt(mutex)
