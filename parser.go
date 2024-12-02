@@ -172,24 +172,24 @@ func normalizeFields(fields []string, options ParseOption) ([]string, error) {
 	}
 
 	// Figure out how many fields we need
-	max := 0
+	_max := 0
 	for _, place := range places {
 		if options&place > 0 {
-			max++
+			_max++
 		}
 	}
-	min := max - optionals
+	_min := _max - optionals
 
 	// Validate number of fields
-	if count := len(fields); count < min || count > max {
-		if min == max {
-			return nil, fmt.Errorf("expected exactly %d fields, found %d: %s", min, count, fields)
+	if count := len(fields); count < _min || count > _max {
+		if _min == _max {
+			return nil, fmt.Errorf("expected exactly %d fields, found %d: %s", _min, count, fields)
 		}
-		return nil, fmt.Errorf("expected %d to %d fields, found %d: %s", min, max, count, fields)
+		return nil, fmt.Errorf("expected %d to %d fields, found %d: %s", _min, _max, count, fields)
 	}
 
 	// Populate the optional field if not provided
-	if min < max && len(fields) == min {
+	if _min < _max && len(fields) == _min {
 		switch {
 		case options&DowOptional > 0:
 			fields = append(fields, defaults[5]) // TODO: improve access to default
@@ -342,16 +342,16 @@ func mustParseInt(expr string) (uint, error) {
 }
 
 // getBits sets all bits in the range [min, max], modulo the given step size.
-func getBits(min, max, step uint) uint64 {
+func getBits(_min, _max, step uint) uint64 {
 	var bits uint64
 
 	// If step is 1, use shifts.
 	if step == 1 {
-		return ^(math.MaxUint64 << (max + 1)) & (math.MaxUint64 << min)
+		return ^(math.MaxUint64 << (_max + 1)) & (math.MaxUint64 << _min)
 	}
 
 	// Else, use a simple loop.
-	for i := min; i <= max; i += step {
+	for i := _min; i <= _max; i += step {
 		bits |= 1 << i
 	}
 	return bits

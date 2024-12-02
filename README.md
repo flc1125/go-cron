@@ -1,6 +1,6 @@
 # Cron
 
-![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.18-blue)
+![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.22-blue)
 [![Package Version](https://badgen.net/github/release/flc1125/go-cron/stable)](https://github.com/flc1125/go-cron/releases)
 [![GoDoc](https://pkg.go.dev/badge/github.com/flc1125/go-cron/v4)](https://pkg.go.dev/github.com/flc1125/go-cron/v4)
 [![codecov](https://codecov.io/gh/flc1125/go-cron/graph/badge.svg?token=mXNvrv22JH)](https://codecov.io/gh/flc1125/go-cron)
