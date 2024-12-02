@@ -3,15 +3,14 @@ package otel
 import (
 	"context"
 
+	"github.com/flc1125/go-cron/v4"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/flc1125/go-cron/v4"
 )
 
-const ScopeName = "github.com/flc1125/go-cron/v4/middleware/otel"
+const scopeName = "github.com/flc1125/go-cron/v4/middleware/otel"
 
 var (
 	attrJobName     = attribute.Key("cron.job.name")
@@ -51,7 +50,7 @@ type JobWithName interface {
 
 func New(opts ...Option) cron.Middleware {
 	o := newOption(opts...)
-	tracer := o.tp.Tracer(ScopeName)
+	tracer := o.tp.Tracer(scopeName)
 	return func(original cron.Job) cron.Job {
 		return cron.JobFunc(func(ctx context.Context) error {
 			job, ok := any(original).(JobWithName)
@@ -74,8 +73,6 @@ func New(opts ...Option) cron.Middleware {
 			if err != nil {
 				span.SetStatus(codes.Error, err.Error())
 				span.RecordError(err)
-			} else {
-				span.SetStatus(codes.Ok, "OK")
 			}
 
 			return err

@@ -16,6 +16,7 @@ fix:
 .PHONY: test
 test:
 	go test ./... -race -cover
+	go test ./middleware/otel/... -race -cover
 	@echo "✅ Testing completed"
 
 .PHONY: fmt
