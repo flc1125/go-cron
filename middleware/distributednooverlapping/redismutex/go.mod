@@ -1,6 +1,8 @@
 module github.com/flc1125/go-cron/v4/middleware/distributednooverlapping/redismutex
 
-go 1.18
+go 1.22
+
+toolchain go1.23.3
 
 replace github.com/flc1125/go-cron/v4 => ../../../
 
