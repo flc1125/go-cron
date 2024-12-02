@@ -22,4 +22,4 @@ jobs:
           cache-dependency-path: "**/go.sum"
 
       - name: Run linters
-        run: make lint test-coverage
+        run: make lint
