@@ -26,10 +26,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: "**/go.sum"
       - run: go version
 
       - name: Run tests
-        run: go test ./... -v -covermode=atomic -race -coverprofile=coverage.txt
+        run: make test test-coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
