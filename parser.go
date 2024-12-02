@@ -172,24 +172,24 @@ func normalizeFields(fields []string, options ParseOption) ([]string, error) {
 	}
 
 	// Figure out how many fields we need
-	max := 0
+	_max := 0
 	for _, place := range places {
 		if options&place > 0 {
-			max++
+			_max++
 		}
 	}
-	min := max - optionals
+	_min := _max - optionals
 
 	// Validate number of fields
-	if count := len(fields); count < min || count > max {
-		if min == max {
-			return nil, fmt.Errorf("expected exactly %d fields, found %d: %s", min, count, fields)
+	if count := len(fields); count < _min || count > _max {
+		if _min == _max {
+			return nil, fmt.Errorf("expected exactly %d fields, found %d: %s", _min, count, fields)
 		}
-		return nil, fmt.Errorf("expected %d to %d fields, found %d: %s", min, max, count, fields)
+		return nil, fmt.Errorf("expected %d to %d fields, found %d: %s", _min, _max, count, fields)
 	}
 
 	// Populate the optional field if not provided
-	if min < max && len(fields) == min {
+	if _min < _max && len(fields) == _min {
 		switch {
 		case options&DowOptional > 0:
 			fields = append(fields, defaults[5]) // TODO: improve access to default
