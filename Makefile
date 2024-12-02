@@ -59,7 +59,7 @@ test/%:
 		| xargs go test -timeout $(TIMEOUT)s $(ARGS)
 
 COVERAGE_MODE    = atomic
-COVERAGE_PROFILE = coverage.out
+COVERAGE_PROFILE = coverage.txt
 .PHONY: test-coverage
 test-coverage: $(GOCOVMERGE)
 	@set -e; \
@@ -69,5 +69,5 @@ test-coverage: $(GOCOVMERGE)
 	  (cd "$${dir}" && \
 	    go list ./... \
 	    | xargs go test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" && \
-	  go tool cover -html=coverage.out -o coverage.html); \
+	  go tool cover -html="$(COVERAGE_PROFILE)" -o coverage.html); \
 	done;
