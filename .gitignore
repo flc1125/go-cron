@@ -15,6 +15,7 @@
 vendor/
 go.work
 go.work.sum
+.tools
 .idea
 _backup
 .todo
