@@ -20,7 +20,7 @@ jobs:
 
     services:
       redis:
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ runner.os == 'Linux' }}
         image: redis
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
