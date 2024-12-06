@@ -76,6 +76,14 @@ func main() {
 }
 ```
 
+## Middleware
+
+- [recovery](./middleware/recovery): Recovers from panics in job execution, ensuring system stability.
+- [delayoverlapping](./middleware/delayoverlapping): Delays execution of overlapping jobs instead of running them concurrently.
+- [nooverlapping](./middleware/nooverlapping): Prevents concurrent execution of the same job.
+- [distributednooverlapping](./middleware/distributednooverlapping): Prevents concurrent execution across multiple instances using distributed locking.
+- [otel](./middleware/otel): Provides OpenTelemetry integration for job execution tracing.
+
 ## License
 
 - The MIT License (MIT). Please see [License File](LICENSE) for more information.
