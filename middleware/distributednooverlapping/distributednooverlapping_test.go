@@ -33,7 +33,7 @@ func (j testJob) GetMutexTTL() time.Duration {
 }
 
 type testMutex struct {
-	t *testing.T
+	t *testing.T //nolint:unused
 }
 
 var _ Mutex = testMutex{}
