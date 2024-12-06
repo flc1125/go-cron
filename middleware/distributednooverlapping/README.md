@@ -2,6 +2,13 @@
 
 This middleware is used to prevent the overlapping of the cron job in a distributed environment.
 
+## Features
+
+- Distributed locking using Redis
+- Configurable mutex TTL and key prefixes
+- Automatic lock release on job completion
+- Graceful handling of network partitions
+
 ## Usage
 
 ```go

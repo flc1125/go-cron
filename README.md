@@ -78,11 +78,11 @@ func main() {
 
 ## Middleware
 
-- [recovery](./middleware/recovery): The `recovery` is a middleware for that recovers from panics.
-- [delayoverlapping](./middleware/delayoverlapping): The `delayoverlapping` is a middleware for that delay job overlapping.
-- [nooverlapping](./middleware/nooverlapping): The `nooverlapping` is a middleware for that prevent job overlapping.
-- [distributednooverlapping](./middleware/distributednooverlapping): The `distributednooverlapping` is a middleware for that prevent distributed job overlapping.
-- [otel](./middleware/otel): The `otel` is a middleware for that trace job.
+- [recovery](./middleware/recovery): Recovers from panics in job execution, ensuring system stability.
+- [delayoverlapping](./middleware/delayoverlapping): Delays execution of overlapping jobs instead of running them concurrently.
+- [nooverlapping](./middleware/nooverlapping): Prevents concurrent execution of the same job.
+- [distributednooverlapping](./middleware/distributednooverlapping): Prevents concurrent execution across multiple instances using distributed locking.
+- [otel](./middleware/otel): Provides OpenTelemetry integration for job execution tracing.
 
 ## License
 
