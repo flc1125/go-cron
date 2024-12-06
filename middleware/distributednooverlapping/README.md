@@ -64,3 +64,13 @@ func main() {
 	time.Sleep(10 * time.Second)
 }
 ```
+
+output:
+
+```shell
+2024/12/06 10:35:09 running job two
+2024/12/06 10:35:11 running job two
+2024/12/06 10:35:13 running job two
+2024/12/06 10:35:15 running job one
+2024/12/06 10:35:17 running job two
+```
