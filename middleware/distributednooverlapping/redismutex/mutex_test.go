@@ -2,7 +2,6 @@ package redismutex
 
 import (
 	"context"
-	"runtime"
 	"testing"
 	"time"
 
@@ -48,12 +47,6 @@ func createRedis(t *testing.T) redis.UniversalClient {
 
 func TestMutex(t *testing.T) {
 	client := createRedis(t)
-	if runtime.GOOS != "linux" {
-		if err := client.Ping(ctx).Err(); err != nil {
-			t.Skipf("skipping test on %s: because of the redis connection error: %v", runtime.GOOS, err)
-		}
-	}
-
 	mutex := New(client, WithPrefix("test:cron"))
 
 	t.Run("basic routine testing", func(t *testing.T) {
