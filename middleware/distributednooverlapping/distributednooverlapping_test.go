@@ -38,7 +38,7 @@ type testMutex struct {
 
 var _ Mutex = testMutex{}
 
-func (m testMutex) Lock(ctx context.Context, job JobWithMutex) (bool, error) {
+func (m testMutex) Lock(_ context.Context, job JobWithMutex) (bool, error) {
 	if job.GetMutexKey() == "test" {
 		return true, nil
 	}
@@ -64,7 +64,7 @@ func TestMiddleware_Noop(t *testing.T) {
 		wg.Add(2)
 
 		// not mutex job, so no blocking
-		go assert.NoError(t, noopMiddleware(cron.JobFunc(func(ctx context.Context) error {
+		go assert.NoError(t, noopMiddleware(cron.JobFunc(func(context.Context) error {
 			defer wg.Done()
 			time.Sleep(1 * time.Millisecond)
 			ch <- struct{}{}
@@ -76,7 +76,7 @@ func TestMiddleware_Noop(t *testing.T) {
 			t:    t,
 			name: "test",
 			ttl:  time.Second,
-			Job: cron.JobFunc(func(ctx context.Context) error {
+			Job: cron.JobFunc(func(context.Context) error {
 				defer wg.Done()
 				time.Sleep(1 * time.Millisecond)
 				ch <- struct{}{}

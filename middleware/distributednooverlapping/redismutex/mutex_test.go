@@ -53,7 +53,7 @@ func TestMutex(t *testing.T) {
 	t.Run("basic routine testing", func(t *testing.T) {
 		job := testJob{
 			t: t,
-			job: func(ctx context.Context) error {
+			job: func(context.Context) error {
 				return nil
 			},
 			name: "job:basic",
@@ -86,7 +86,7 @@ func TestMutex(t *testing.T) {
 	t.Run("multiple jobs to see if there is mutual exclusion", func(t *testing.T) {
 		job1 := testJob{
 			t: t,
-			job: func(ctx context.Context) error {
+			job: func(context.Context) error {
 				return nil
 			},
 			name: "job:multi1",
@@ -95,7 +95,7 @@ func TestMutex(t *testing.T) {
 
 		job2 := testJob{
 			t: t,
-			job: func(ctx context.Context) error {
+			job: func(context.Context) error {
 				return nil
 			},
 			name: "job:multi2",
@@ -140,7 +140,6 @@ func TestMutex(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, acquired)
 	})
-
 }
 
 func TestMutex_Prefix(t *testing.T) {
