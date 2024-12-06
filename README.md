@@ -76,6 +76,14 @@ func main() {
 }
 ```
 
+## Middleware
+
+- [recovery](./middleware/recovery): The `recovery` is a middleware for that recovers from panics.
+- [delayoverlapping](./middleware/delayoverlapping): The `delayoverlapping` is a middleware for that delay job overlapping.
+- [nooverlapping](./middleware/nooverlapping): The `nooverlapping` is a middleware for that prevent job overlapping.
+- [distributednooverlapping](./middleware/distributednooverlapping): The `distributednooverlapping` is a middleware for that prevent distributed job overlapping.
+- [otel](./middleware/otel): The `otel` is a middleware for that trace job.
+
 ## License
 
 - The MIT License (MIT). Please see [License File](LICENSE) for more information.
