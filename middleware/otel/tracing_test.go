@@ -79,7 +79,7 @@ func TestTracing(t *testing.T) {
 func TestTracing_NotJobWithName(t *testing.T) {
 	defer imsb.Reset()
 
-	require.NoError(t, middleware(cron.JobFunc(func(context.Context) error {
+	require.NoError(t, middleware(cron.JobFunc(func(ctx context.Context) error {
 		return nil
 	})).Run(ctx))
 	require.Len(t, imsb.GetSpans(), 0)
