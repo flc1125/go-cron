@@ -69,6 +69,7 @@ func New(opts ...Option) cron.Middleware {
 			)...)
 
 			err := job.Run(ctx)
+
 			if err != nil {
 				span.SetStatus(codes.Error, err.Error())
 				span.RecordError(err)
