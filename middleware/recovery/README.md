@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/flc1125/go-cron/v4/middleware/recovery"
+	"github.com/flc1125/go-cron/middleware/recovery/v4"
 )
 
 func main() {

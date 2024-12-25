@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/flc1125/go-cron/v4/middleware/distributednooverlapping"
-	"github.com/flc1125/go-cron/v4/middleware/distributednooverlapping/redismutex"
+	"github.com/flc1125/go-cron/middleware/distributednooverlapping/v4"
+	"github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4"
 	"github.com/redis/go-redis/v9"
 )
 

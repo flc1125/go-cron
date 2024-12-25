@@ -1,4 +1,4 @@
-name: Go Test
+name: CodeConv
 on:
   push:
     branches:
@@ -11,10 +11,10 @@ env:
 
 jobs:
   test:
-    name: "go test"
+    name: "codecov"
     strategy:
       matrix:
-        go-version: [ 1.22.x, 1.23.x ]
+        go-version: [ 1.22.x ]
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -37,4 +37,9 @@ jobs:
       - run: go version
 
       - name: Run tests
-        run: make test
+        run: make test-coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
