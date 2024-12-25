@@ -85,6 +85,16 @@ lint-modules: go-mod-tidy
 .PHONY: lint
 lint: lint-modules golangci-lint
 
+.PHONY: check-clean-work-tree
+check-clean-work-tree:
+	@if ! git diff --quiet; then \
+	  echo; \
+	  echo 'Working tree is not clean, did you forget to run "make precommit"?'; \
+	  echo; \
+	  git status; \
+	  exit 1; \
+	fi
+
 .PHONY: gorelease
 gorelease: $(ROOT_GO_MOD_DIRS:%=gorelease/%)
 gorelease/%: DIR=$*
