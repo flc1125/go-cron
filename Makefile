@@ -24,8 +24,11 @@ $(TOOLS)/golangci-lint: PACKAGE=github.com/golangci/golangci-lint/cmd/golangci-l
 GORELEASE = $(TOOLS)/gorelease
 $(GORELEASE): PACKAGE=golang.org/x/exp/cmd/gorelease
 
+GOCOVMERGE = $(TOOLS)/gocovmerge
+$(TOOLS)/gocovmerge: PACKAGE=github.com/wadey/gocovmerge
+
 .PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE)
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE)
 
 # Tests
 
@@ -52,7 +55,7 @@ COVERAGE_PROFILE = coverage.out
 test-coverage: $(GOCOVMERGE)
 	@set -e; \
 	printf "" > coverage.txt; \
-	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
+	for dir in $(ALL_GO_MOD_DIRS); do \
 	  echo "$(GO) test -coverpkg=github.com/flc1125/go-cron/... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" $${dir}/..."; \
 	  (cd "$${dir}" && \
 	    $(GO) list ./... \
