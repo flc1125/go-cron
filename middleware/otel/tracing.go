@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const scopeName = "github.com/flc1125/go-cron/v4/middleware/otel"
+const scopeName = "github.com/flc1125/go-cron/middleware/otel/v4"
 
 var (
 	attrJobName     = attribute.Key("cron.job.name")

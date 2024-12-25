@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
+	"github.com/flc1125/go-cron/crontest/v4/logger"
 	"github.com/flc1125/go-cron/v4"
-	"github.com/flc1125/go-cron/v4/internal/logger"
+	"github.com/stretchr/testify/assert"
 )
 
 var (

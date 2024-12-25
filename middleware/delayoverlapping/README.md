@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/flc1125/go-cron/v4/middleware/delayoverlapping"
+	"github.com/flc1125/go-cron/middleware/delayoverlapping/v4"
 )
 
 func main() {

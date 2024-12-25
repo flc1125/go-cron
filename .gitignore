@@ -19,3 +19,4 @@ go.work.sum
 _backup
 .todo
 _example
+.tools

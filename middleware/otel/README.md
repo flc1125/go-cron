@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
-	"github.com/flc1125/go-cron/v4/middleware/otel"
+	"github.com/flc1125/go-cron/middleware/otel/v4"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
