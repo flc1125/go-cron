@@ -16,7 +16,7 @@
       "enabled": true
     },
     {
-      "matchFilesNames": ["internal/tools/**"],
+      "matchFileNames": ["internal/tools/go.mod"],
       "constraints": {
         "go": "1.22.10"
       },
