@@ -31,6 +31,26 @@ $(TOOLS)/gocovmerge: PACKAGE=github.com/wadey/gocovmerge
 .PHONY: tools
 tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE)
 
+
+# Build
+
+.PHONY: build
+
+build: $(ROOT_GO_MOD_DIRS:%=build/%) $(ROOT_GO_MOD_DIRS:%=build-tests/%)
+build/%: DIR=$*
+build/%:
+	@echo "$(GO) build $(DIR)/..." \
+		&& cd $(DIR) \
+		&& $(GO) build ./...
+
+build-tests/%: DIR=$*
+build-tests/%:
+	@echo "$(GO) build tests $(DIR)/..." \
+		&& cd $(DIR) \
+		&& $(GO) list ./... \
+		| grep -v third_party \
+		| xargs $(GO) test -vet=off -run xxxxxMatchNothingxxxxx >/dev/null
+
 # Tests
 
 TEST_TARGETS := test-default test-short test-verbose test-race test-concurrent-safe
