@@ -1,8 +1,6 @@
 module github.com/flc1125/go-cron/v4/internal/tools
 
-go 1.22.1
-
-toolchain go1.23.0
+go 1.22.10
 
 require (
 	github.com/golangci/golangci-lint v1.62.2
@@ -18,7 +16,7 @@ require (
 	github.com/Antonboom/errname v1.0.0 // indirect
 	github.com/Antonboom/nilnil v1.0.0 // indirect
 	github.com/Antonboom/testifylint v1.5.2 // indirect
-	github.com/BurntSushi/toml b7406c026f5a // indirect
+	github.com/BurntSushi/toml v1.4.1-0.20241028111116-b7406c026f5a // indirect
 	github.com/Crocmagnon/fatcontext v0.5.3 // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
 	github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0 // indirect
