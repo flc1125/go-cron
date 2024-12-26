@@ -18,6 +18,16 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          check-latest: true
+          cache-dependency-path: "**/go.sum"
+
+      - name: Tools cache
+        uses: actions/cache@v4
+        env:
+          cache-name: go-tools-cache
+        with:
+          path: .tools
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('./internal/tools/**') }}
 
       - name: Run lint
         run: make lint
