@@ -28,8 +28,11 @@ $(GORELEASE): PACKAGE=golang.org/x/exp/cmd/gorelease
 GOCOVMERGE = $(TOOLS)/gocovmerge
 $(TOOLS)/gocovmerge: PACKAGE=github.com/wadey/gocovmerge
 
+MULTIMOD = $(TOOLS)/multimod
+$(TOOLS)/multimod: PACKAGE=go.opentelemetry.io/build-tools/multimod
+
 .PHONY: tools
-tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE)
+tools: $(GOLANGCI_LINT) $(GORELEASE) $(GOCOVMERGE) $(MULTIMOD)
 
 
 # Build
@@ -127,3 +130,18 @@ gorelease/%:| $(GORELEASE)
 		&& cd $(DIR) \
 		&& $(GORELEASE) \
 		|| echo ""
+
+.PHONY: verify-mods
+verify-mods: $(MULTIMOD)
+	$(MULTIMOD) verify
+
+.PHONY: prerelease
+prerelease: verify-mods
+	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
+	$(MULTIMOD) prerelease -m ${MODSET}
+
+COMMIT ?= "HEAD"
+.PHONY: add-tags
+add-tags: verify-mods
+	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
+	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
