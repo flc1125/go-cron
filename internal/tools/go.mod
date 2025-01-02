@@ -3,7 +3,7 @@ module github.com/flc1125/go-cron/v4/internal/tools
 go 1.22.10
 
 require (
-	github.com/golangci/golangci-lint v1.63.2
+	github.com/golangci/golangci-lint v1.63.3
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/multimod v0.15.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
@@ -109,11 +109,11 @@ require (
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
 	github.com/kyoh86/exportloopref v0.1.11 // indirect
 	github.com/lasiar/canonicalheader v1.1.2 // indirect
-	github.com/ldez/exptostd v0.3.0 // indirect
+	github.com/ldez/exptostd v0.3.1 // indirect
 	github.com/ldez/gomoddirectives v0.6.0 // indirect
 	github.com/ldez/grignotin v0.7.0 // indirect
 	github.com/ldez/tagliatelle v0.7.1 // indirect
-	github.com/ldez/usetesting v0.4.1 // indirect
+	github.com/ldez/usetesting v0.4.2 // indirect
 	github.com/leonklingele/grouper v1.1.2 // indirect
 	github.com/macabu/inamedparam v0.1.3 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
