@@ -3,7 +3,7 @@ module github.com/flc1125/go-cron/v4/internal/tools
 go 1.22.10
 
 require (
-	github.com/golangci/golangci-lint v1.63.3
+	github.com/golangci/golangci-lint v1.63.4
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	go.opentelemetry.io/build-tools/multimod v0.15.0
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329
