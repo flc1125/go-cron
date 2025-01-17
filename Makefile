@@ -145,3 +145,8 @@ COMMIT ?= "HEAD"
 add-tags: verify-mods
 	@[ "${MODSET}" ] || ( echo ">> env var MODSET is not set"; exit 1 )
 	$(MULTIMOD) tag -m ${MODSET} -c ${COMMIT}
+
+.PHONY: clean
+clean:
+	@rm -rf $(TOOLS)
+	@rm -rf coverage.txt coverage.out coverage.html
