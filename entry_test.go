@@ -10,7 +10,7 @@ import (
 )
 
 func TestEntry_Attributes(t *testing.T) {
-	entry := newEntry(1, nil, JobFunc(func(context.Context) error {
+	entry := NewEntry(1, nil, JobFunc(func(context.Context) error {
 		return nil
 	}))
 	assert.Equal(t, entry.ID(), EntryID(1))
@@ -41,7 +41,7 @@ func TestEntry_Context(t *testing.T) {
 			assert.Nil(t, entry)
 
 			// existent entry
-			entry = newEntry(tt.id, nil, JobFunc(func(ctx context.Context) error {
+			entry = NewEntry(tt.id, nil, JobFunc(func(ctx context.Context) error {
 				entry, ok := EntryFromContext(ctx)
 				assert.True(t, ok)
 				assert.Equal(t, entry.ID(), tt.id)

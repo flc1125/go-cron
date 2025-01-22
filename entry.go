@@ -36,16 +36,16 @@ type Entry struct {
 	middlewares []Middleware
 }
 
-type entryOption func(*Entry)
+type EntryOption func(*Entry)
 
-func withEntryMiddlewares(middlewares ...Middleware) entryOption {
+func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 	return func(e *Entry) {
 		e.middlewares = middlewares
 	}
 }
 
-// newEntry creates a new entry with the given schedule and job.
-func newEntry(id EntryID, schedule Schedule, job Job, opts ...entryOption) *Entry {
+// NewEntry creates a new entry with the given schedule and job.
+func NewEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
 	entry := &Entry{
 		id:       id,
 		schedule: schedule,
