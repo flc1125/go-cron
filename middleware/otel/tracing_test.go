@@ -62,7 +62,10 @@ func TestTracing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer imsb.Reset()
 
-			entry := cron.NewEntry(cron.EntryID(rand.IntN(10)), nil, &mockJob{t: t, name: tt.name, err: tt.error}, cron.WithEntryMiddlewares(middleware))
+			entry := cron.NewEntry(
+				cron.EntryID(rand.IntN(10)), nil,
+				&mockJob{t: t, name: tt.name, err: tt.error}, cron.WithEntryMiddlewares(middleware),
+			)
 
 			require.Equal(t, tt.error, entry.WrappedJob().Run(ctx))
 			require.Len(t, imsb.GetSpans(), 1)
