@@ -124,7 +124,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) E
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	c.nextID++
-	entry := newEntry(c.nextID, schedule, cmd, withEntryMiddlewares(
+	entry := NewEntry(c.nextID, schedule, cmd, WithEntryMiddlewares(
 		append(c.middlewares, middlewares...)...),
 	)
 	if !c.running {

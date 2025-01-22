@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/flc1125/go-cron/v4"
@@ -61,7 +62,9 @@ func TestTracing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer imsb.Reset()
 
-			require.Equal(t, tt.error, middleware(&mockJob{t: t, name: tt.name, err: tt.error}).Run(ctx))
+			entry := cron.NewEntry(cron.EntryID(rand.IntN(10)), nil, &mockJob{t: t, name: tt.name, err: tt.error}, cron.WithEntryMiddlewares(middleware))
+
+			require.Equal(t, tt.error, entry.WrappedJob().Run(ctx))
 			require.Len(t, imsb.GetSpans(), 1)
 
 			span := imsb.GetSpans()[0]
@@ -69,6 +72,7 @@ func TestTracing(t *testing.T) {
 			assert.NotEmpty(t, span.SpanContext.TraceID())
 			assert.NotEmpty(t, span.SpanContext.SpanID())
 			assert.Equal(t, trace.SpanKindInternal, span.SpanKind)
+			assert.Contains(t, span.Attributes, attribute.Int("cron.job.id", int(entry.ID())))
 			assert.Contains(t, span.Attributes, attribute.String("cron.job.name", tt.name))
 			assert.Contains(t, span.Attributes, attribute.String("test.job", tt.name))
 			tt.extraTesting(t, span)

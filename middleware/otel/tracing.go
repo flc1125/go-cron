@@ -53,7 +53,12 @@ func New(opts ...Option) cron.Middleware {
 	tracer := o.tp.Tracer(scopeName)
 	return func(original cron.Job) cron.Job {
 		return cron.JobFunc(func(ctx context.Context) error {
-			job, ok := any(original).(JobWithName)
+			entry, ok := cron.EntryFromContext(ctx)
+			if !ok {
+				return original.Run(ctx)
+			}
+
+			job, ok := any(entry.Job()).(JobWithName)
 			if !ok {
 				return original.Run(ctx)
 			}
@@ -63,10 +68,12 @@ func New(opts ...Option) cron.Middleware {
 			)
 			defer span.End()
 
-			span.SetAttributes(append(
-				entryAttributes(ctx),
+			span.SetAttributes(
+				attrJobID.Int(int(entry.ID())),
 				attrJobName.String(job.Name()),
-			)...)
+				attrJobPrevTime.String(entry.Prev().String()),
+				attrJobNextTime.String(entry.Next().String()),
+			)
 
 			err := job.Run(ctx)
 			if err != nil {
@@ -76,18 +83,5 @@ func New(opts ...Option) cron.Middleware {
 
 			return err
 		})
-	}
-}
-
-func entryAttributes(ctx context.Context) []attribute.KeyValue {
-	entry, ok := cron.EntryFromContext(ctx)
-	if !ok {
-		return []attribute.KeyValue{}
-	}
-
-	return []attribute.KeyValue{
-		attrJobID.Int(int(entry.ID())),
-		attrJobPrevTime.String(entry.Prev().String()),
-		attrJobNextTime.String(entry.Next().String()),
 	}
 }

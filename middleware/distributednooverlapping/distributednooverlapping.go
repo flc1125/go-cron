@@ -34,7 +34,14 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 	o := newOptions(mu, opts...)
 	return func(original cron.Job) cron.Job {
 		return cron.JobFunc(func(ctx context.Context) error {
-			job, ok := any(original).(JobWithMutex)
+			entry, ok := cron.EntryFromContext(ctx)
+			if !ok {
+				return original.Run(ctx)
+			}
+
+			// fix: https://github.com/flc1125/go-cron/issues/190
+			// retrieve original job data
+			job, ok := any(entry.Job()).(JobWithMutex)
 			if !ok {
 				return original.Run(ctx)
 			}
