@@ -1,8 +1,7 @@
-package issue_190
+package issue_190 //nolint:revive
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,9 +28,9 @@ var (
 	_ otel.JobWithName                      = (*exampleJob)(nil)
 )
 
-func (j exampleJob) Run(context.Context) error { // regular cron.Job
+func (j exampleJob) Run(context.Context) error {
 	time.Sleep(2 * time.Second)
-	j.t.Log(fmt.Sprintf("job %s is done", j.Name()))
+	j.t.Logf("job %s is running", j.name)
 	return nil
 }
 
