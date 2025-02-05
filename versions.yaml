@@ -12,3 +12,4 @@ module-sets:
       - github.com/flc1125/go-cron/middleware/recovery/v4
 excluded-modules:
   - github.com/flc1125/go-cron/v4/internal/tools
+  - github.com/flc1125/go-cron/tests/v4
