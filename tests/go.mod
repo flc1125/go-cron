@@ -3,6 +3,7 @@ module github.com/flc1125/go-cron/tests/v4
 go 1.22.0
 
 replace (
+	github.com/flc1125/go-cron/crontest/v4 => ../crontest
 	github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4 => ../middleware/distributednooverlapping/redismutex
 	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 => ../middleware/distributednooverlapping
 	github.com/flc1125/go-cron/middleware/nooverlapping/v4 => ../middleware/nooverlapping
@@ -12,12 +13,12 @@ replace (
 )
 
 require (
-	github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4 v4.3.2
-	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.3.2
-	github.com/flc1125/go-cron/middleware/nooverlapping/v4 v4.3.2
-	github.com/flc1125/go-cron/middleware/otel/v4 v4.3.2
-	github.com/flc1125/go-cron/middleware/recovery/v4 v4.3.2
-	github.com/flc1125/go-cron/v4 v4.3.2
+	github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4 v4.4.0
+	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.4.0
+	github.com/flc1125/go-cron/middleware/nooverlapping/v4 v4.4.0
+	github.com/flc1125/go-cron/middleware/otel/v4 v4.4.0
+	github.com/flc1125/go-cron/middleware/recovery/v4 v4.4.0
+	github.com/flc1125/go-cron/v4 v4.4.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel/sdk v1.34.0
