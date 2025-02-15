@@ -4,4 +4,4 @@ go 1.22.0
 
 replace github.com/flc1125/go-cron/v4 => ../
 
-require github.com/flc1125/go-cron/v4 v4.4.0
+require github.com/flc1125/go-cron/v4 v4.4.1
