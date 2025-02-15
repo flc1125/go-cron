@@ -1,6 +1,6 @@
 module-sets:
   stable-v4:
-    version: v4.4.0
+    version: v4.4.1
     modules:
       # Core modules
       - github.com/flc1125/go-cron/v4
