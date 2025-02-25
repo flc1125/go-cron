@@ -1,6 +1,6 @@
 module github.com/flc1125/go-cron/crontest/v4
 
-go 1.22.0
+go 1.23
 
 replace github.com/flc1125/go-cron/v4 => ../
 
