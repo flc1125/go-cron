@@ -1,6 +1,6 @@
 module github.com/flc1125/go-cron/middleware/otel/v4
 
-go 1.23.6
+go 1.23.0
 
 replace github.com/flc1125/go-cron/v4 => ../../
 
