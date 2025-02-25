@@ -1,6 +1,6 @@
 module github.com/flc1125/go-cron/middleware/distributednooverlapping/v4
 
-go 1.23
+go 1.23.6
 
 replace (
 	github.com/flc1125/go-cron/crontest/v4 => ../../crontest

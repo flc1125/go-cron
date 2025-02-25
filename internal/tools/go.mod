@@ -1,6 +1,6 @@
 module github.com/flc1125/go-cron/v4/internal/tools
 
-go 1.23
+go 1.23.6
 
 require (
 	github.com/golangci/golangci-lint v1.63.4
