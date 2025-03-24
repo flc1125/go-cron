@@ -40,7 +40,7 @@ func createRedis(t *testing.T) redis.UniversalClient {
 	})
 	t.Cleanup(func() {
 		client.FlushAll(ctx)
-		client.Close()
+		client.Close() // nolint: errcheck
 	})
 	return client
 }
