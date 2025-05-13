@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/flc1125/go-cron/v4 => ../../
 
 require (
-	github.com/flc1125/go-cron/v4 v4.5.3
+	github.com/flc1125/go-cron/v4 v4.5.4
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/sdk v1.35.0
