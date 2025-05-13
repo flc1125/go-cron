@@ -9,8 +9,8 @@ replace (
 )
 
 require (
-	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.5.3
-	github.com/flc1125/go-cron/v4 v4.5.3
+	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.5.4
+	github.com/flc1125/go-cron/v4 v4.5.4
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.10.0
 )
