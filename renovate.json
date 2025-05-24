@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+  "ignorePaths": [],
   "labels": ["dependencies"],
   "separateMajorMinor": true,
   "postUpdateOptions": ["gomodTidy"],
