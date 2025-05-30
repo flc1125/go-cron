@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/flc1125/go-cron/crontest/v4 v4.5.4
-	github.com/flc1125/go-cron/v4 v4.5.4
+	github.com/flc1125/go-cron/crontest/v4 v4.5.5
+	github.com/flc1125/go-cron/v4 v4.5.5
 	github.com/stretchr/testify v1.10.0
 )
 
