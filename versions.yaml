@@ -1,5 +1,5 @@
 module-sets:
-  stable-v4:
+  stable:
     version: v4.5.5
     modules:
       # Core modules
