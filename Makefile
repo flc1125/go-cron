@@ -150,3 +150,6 @@ add-tags: verify-mods
 clean:
 	@rm -rf $(TOOLS)
 	@rm -rf coverage.txt coverage.out coverage.html
+
+# push-tags
+# git tag -l | grep 'v4.5.5$' | xargs -P 4 -I {} git push origin {}
