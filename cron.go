@@ -277,7 +277,7 @@ func (c *Cron) startJob(j Job) {
 
 // now returns current time in c location
 func (c *Cron) now() time.Time {
-	return time.Now().In(c.location)
+	return GetTimeNow().In(c.location)
 }
 
 // Stop stops the cron scheduler if it is running; otherwise it does nothing.
@@ -319,4 +319,13 @@ func (c *Cron) removeEntry(id EntryID) {
 		}
 	}
 	c.entries = entries
+}
+
+var FnTimeNow func() time.Time
+
+func GetTimeNow() time.Time {
+	if FnTimeNow != nil {
+		return FnTimeNow()
+	}
+	return time.Now()
 }

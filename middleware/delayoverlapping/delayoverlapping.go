@@ -52,7 +52,7 @@ func New(opts ...Option) cron.Middleware {
 				if dur := time.Since(starting); dur > o.reminderTime {
 					o.logger.Info("delay", "duration", dur)
 				}
-			}(time.Now())
+			}(cron.GetTimeNow())
 
 			return job.Run(ctx)
 		})
