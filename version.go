@@ -1,5 +1,5 @@
 package cron
 
 func Version() string {
-	return "4.5.5"
+	return "4.5.6"
 }
