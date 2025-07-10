@@ -22,6 +22,10 @@
         "go": "1.23.0"
       },
       "enabled": true
+    },
+    {
+      "matchPackageNames": ["golang.org/x/**"],
+      "groupName": "golang.org/x"
     }
   ]
 }
