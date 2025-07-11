@@ -30,7 +30,7 @@
 //   - , : value list separator
 //   - - : range of values
 //   - / : step values
-//   - @yearly, @annually, @monthly, @weekly, @daily, @hourly : predefined schedules
+//   - @yearly, @annually, @monthly, @weekly, @daily, @midnight, @hourly : predefined schedules
 //
 // # Jobs and Functions
 //
@@ -70,6 +70,9 @@
 //	// Apply middleware to specific jobs
 //	c.AddFunc("* * * * *", myFunc, recovery.New())
 //
+//	// Use middleware on running cron
+//	c.Use(recovery.New(), nooverlapping.New())
+//
 // Available middleware:
 //   - recovery: Recovers from panics in job execution
 //   - nooverlapping: Prevents concurrent execution of the same job
@@ -102,6 +105,9 @@
 //
 //	// Add jobs
 //	entryID, err := c.AddFunc("* * * * *", myFunc)
+//	if err != nil {
+//		// Handle error
+//	}
 //
 //	// Start the scheduler
 //	c.Start()
