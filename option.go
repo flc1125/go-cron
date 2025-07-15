@@ -50,3 +50,19 @@ func WithLogger(logger Logger) Option {
 		c.logger = logger
 	}
 }
+
+// WithClock sets a custom clock for the cron instance.
+func WithClock(clock Clock) Option {
+	return func(c *Cron) {
+		c.clock = clock
+	}
+}
+
+func WithOffset(offset time.Duration) Option {
+	return func(c *Cron) {
+		c.clock = OffsetClock{
+			base:   SystemClock{location: c.location},
+			offset: offset,
+		}
+	}
+}
