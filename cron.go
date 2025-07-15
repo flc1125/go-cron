@@ -25,6 +25,7 @@ type Cron struct {
 	parser      ScheduleParser
 	nextID      EntryID
 	jobWaiter   sync.WaitGroup
+	offset      time.Duration
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -88,6 +89,7 @@ func New(opts ...Option) *Cron {
 		logger:    DefaultLogger,
 		location:  time.Local,
 		parser:    standardParser,
+		offset:    0,
 	}
 	for _, opt := range opts {
 		opt(c)

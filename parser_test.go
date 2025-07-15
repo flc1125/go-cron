@@ -166,6 +166,7 @@ func TestParseSchedule(t *testing.T) {
 				Month:    all(months),
 				Dow:      all(dow),
 				Location: time.Local,
+				Offset:   0,
 			},
 		},
 	}
@@ -320,7 +321,7 @@ func TestStandardSpecSchedule(t *testing.T) {
 	}{
 		{
 			expr:     "5 * * * *",
-			expected: &SpecSchedule{1 << seconds.min, 1 << 5, all(hours), all(dom), all(months), all(dow), time.Local},
+			expected: &SpecSchedule{1 << seconds.min, 1 << 5, all(hours), all(dom), all(months), all(dow), time.Local, 0},
 		},
 		{
 			expr:     "@every 5m",
@@ -359,15 +360,15 @@ func TestNoDescriptorParser(t *testing.T) {
 }
 
 func every5min(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1 << 0, 1 << 5, all(hours), all(dom), all(months), all(dow), loc}
+	return &SpecSchedule{1 << 0, 1 << 5, all(hours), all(dom), all(months), all(dow), loc, 0}
 }
 
 func every5min5s(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1 << 5, 1 << 5, all(hours), all(dom), all(months), all(dow), loc}
+	return &SpecSchedule{1 << 5, 1 << 5, all(hours), all(dom), all(months), all(dow), loc, 0}
 }
 
 func midnight(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1, 1, 1, all(dom), all(months), all(dow), loc}
+	return &SpecSchedule{1, 1, 1, all(dom), all(months), all(dow), loc, 0}
 }
 
 func annual(loc *time.Location) *SpecSchedule {
@@ -379,5 +380,110 @@ func annual(loc *time.Location) *SpecSchedule {
 		Month:    1 << months.min,
 		Dow:      all(dow),
 		Location: loc,
+		Offset:   0,
+	}
+}
+
+func TestParseOffset(t *testing.T) {
+	tests := []struct {
+		expr     string
+		expected *SpecSchedule
+	}{
+		{
+			"OFFSET=30s 0 5 * * * *",
+			&SpecSchedule{
+				Second:   1 << 0,
+				Minute:   1 << 5,
+				Hour:     all(hours),
+				Dom:      all(dom),
+				Month:    all(months),
+				Dow:      all(dow),
+				Location: time.Local,
+				Offset:   30 * time.Second,
+			},
+		},
+		{
+			"OFFSET=-1m 0 5 * * * *",
+			&SpecSchedule{
+				Second:   1 << 0,
+				Minute:   1 << 5,
+				Hour:     all(hours),
+				Dom:      all(dom),
+				Month:    all(months),
+				Dow:      all(dow),
+				Location: time.Local,
+				Offset:   -1 * time.Minute,
+			},
+		},
+		{
+			"0 5 * * * *",
+			&SpecSchedule{
+				Second:   1 << 0,
+				Minute:   1 << 5,
+				Hour:     all(hours),
+				Dom:      all(dom),
+				Month:    all(months),
+				Dow:      all(dow),
+				Location: time.Local,
+				Offset:   0,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := secondParser.Parse(test.expr)
+		if err != nil {
+			t.Errorf("%s => unexpected error %v", test.expr, err)
+			continue
+		}
+		if !reflect.DeepEqual(actual, test.expected) {
+			t.Errorf("%s => expected %+v, got %+v", test.expr, test.expected, actual)
+		}
+	}
+}
+
+func TestParseOffsetWithTimezone(t *testing.T) {
+	tokyo, _ := time.LoadLocation("Asia/Tokyo")
+	tests := []struct {
+		expr     string
+		expected *SpecSchedule
+	}{
+		{
+			"TZ=Asia/Tokyo OFFSET=30s 0 5 * * * *",
+			&SpecSchedule{
+				Second:   1 << 0,
+				Minute:   1 << 5,
+				Hour:     all(hours),
+				Dom:      all(dom),
+				Month:    all(months),
+				Dow:      all(dow),
+				Location: tokyo,
+				Offset:   30 * time.Second,
+			},
+		},
+		{
+			"OFFSET=30s TZ=Asia/Tokyo 0 5 * * * *",
+			&SpecSchedule{
+				Second:   1 << 0,
+				Minute:   1 << 5,
+				Hour:     all(hours),
+				Dom:      all(dom),
+				Month:    all(months),
+				Dow:      all(dow),
+				Location: tokyo,
+				Offset:   30 * time.Second,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := secondParser.Parse(test.expr)
+		if err != nil {
+			t.Errorf("%s => unexpected error %v", test.expr, err)
+			continue
+		}
+		if !reflect.DeepEqual(actual, test.expected) {
+			t.Errorf("%s => expected %+v, got %+v", test.expr, test.expected, actual)
+		}
 	}
 }

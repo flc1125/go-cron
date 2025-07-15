@@ -298,3 +298,50 @@ func TestSlash0NoHang(t *testing.T) {
 		t.Error("expected an error on 0 increment")
 	}
 }
+
+func TestOffset(t *testing.T) {
+	tests := []struct {
+		time, spec string
+		expected   string
+	}{
+		{"Mon Jul 9 14:59:40 2012", "OFFSET=20s 0 * * * * *", "Mon Jul 9 15:00:20 2012"},
+		{"Mon Jul 9 14:59:40 2012", "OFFSET=1m 0 * * * * *", "Mon Jul 9 15:01:00 2012"},
+		{"Mon Jul 9 15:00:20 2012", "OFFSET=-20s 0 * * * * *", "Mon Jul 9 15:59:40 2012"},
+		{"Mon Jul 9 15:01:00 2012", "OFFSET=-1m 0 * * * * *", "Mon Jul 9 16:00:00 2012"},
+		{"2012-03-11T00:00:00-0500", "TZ=America/New_York OFFSET=30s 0 0 * * * ?", "2012-03-11T01:00:30-0500"},
+		{"2012-03-11T00:00:00-0500", "OFFSET=30s TZ=America/New_York 0 0 * * * ?", "2012-03-11T01:00:30-0500"},
+		{"Mon Jul 9 14:59:40 2012", "OFFSET=0s 0 * * * * *", "Mon Jul 9 15:00:00 2012"},
+	}
+
+	for _, test := range tests {
+		sched, err := secondParser.Parse(test.spec)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		actual := sched.Next(getTime(test.time).Add(-1 * time.Second))
+		expected := getTime(test.expected)
+		if !actual.Equal(expected) {
+			t.Errorf("Fail evaluating %s on %s: (expected) %s != %s (actual)",
+				test.spec, test.time, expected, actual)
+		}
+	}
+}
+
+func TestOffsetErrors(t *testing.T) {
+	tests := []struct {
+		spec string
+		err  string
+	}{
+		{"OFFSET=invalid 0 * * * * *", "provided bad offset"},
+		{"OFFSET= 0 * * * * *", "provided bad offset"},
+		{"OFFSET=1x 0 * * * * *", "provided bad offset"},
+	}
+
+	for _, test := range tests {
+		_, err := secondParser.Parse(test.spec)
+		if err == nil || !strings.Contains(err.Error(), test.err) {
+			t.Errorf("%s => expected error containing %q, got %v", test.spec, test.err, err)
+		}
+	}
+}

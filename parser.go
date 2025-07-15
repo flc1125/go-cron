@@ -91,12 +91,24 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 
 	// Extract timezone if present
 	loc := time.Local
+	var offset time.Duration
 	if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
 		var err error
 		i := strings.Index(spec, " ")
 		eq := strings.Index(spec, "=")
 		if loc, err = time.LoadLocation(spec[eq+1 : i]); err != nil {
 			return nil, fmt.Errorf("provided bad location %s: %v", spec[eq+1:i], err)
+		}
+		spec = strings.TrimSpace(spec[i:])
+	}
+
+	// Extract offset if present
+	if strings.HasPrefix(spec, "OFFSET=") {
+		var err error
+		i := strings.Index(spec, " ")
+		eq := strings.Index(spec, "=")
+		if offset, err = time.ParseDuration(spec[eq+1 : i]); err != nil {
+			return nil, fmt.Errorf("provided bad offset %s: %v", spec[eq+1:i], err)
 		}
 		spec = strings.TrimSpace(spec[i:])
 	}
@@ -148,6 +160,7 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 		Month:    month,
 		Dow:      dayofweek,
 		Location: loc,
+		Offset:   offset,
 	}, nil
 }
 
@@ -374,6 +387,7 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    1 << months.min,
 			Dow:      all(dow),
 			Location: loc,
+			Offset:   0,
 		}, nil
 
 	case "@monthly":
@@ -385,6 +399,7 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
+			Offset:   0,
 		}, nil
 
 	case "@weekly":
@@ -396,6 +411,7 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      1 << dow.min,
 			Location: loc,
+			Offset:   0,
 		}, nil
 
 	case "@daily", "@midnight":
@@ -407,6 +423,7 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
+			Offset:   0,
 		}, nil
 
 	case "@hourly":
@@ -418,6 +435,7 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
+			Offset:   0,
 		}, nil
 	}
 

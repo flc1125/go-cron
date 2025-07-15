@@ -50,3 +50,9 @@ func WithLogger(logger Logger) Option {
 		c.logger = logger
 	}
 }
+
+func WithOffset(offset time.Duration) Option {
+	return func(c *Cron) {
+		c.offset = offset
+	}
+}

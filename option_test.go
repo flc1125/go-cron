@@ -50,3 +50,11 @@ func TestWithVerboseLogger(t *testing.T) {
 		t.Error("expected to see some actions, got:", out)
 	}
 }
+
+func TestWithOffset(t *testing.T) {
+	offset := 30 * time.Second
+	c := New(WithOffset(offset))
+	if c.offset != offset {
+		t.Errorf("expected offset %v, got %v", offset, c.offset)
+	}
+}
