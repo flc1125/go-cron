@@ -487,3 +487,24 @@ func TestParseOffsetWithTimezone(t *testing.T) {
 		}
 	}
 }
+
+func TestParseOffsetErrors(t *testing.T) {
+	tests := []struct {
+		expr string
+		err  string
+	}{
+		{"OFFSET=invalid 0 5 * * * *", "provided bad offset"},
+		{"OFFSET= 0 5 * * * *", "provided bad offset"},
+		{"OFFSET=1x 0 5 * * * *", "provided bad offset"},
+		{"OFFSET=999999999999999999999s 0 5 * * * *", "provided bad offset"},
+		{"TZ=Invalid/Location OFFSET=30s 0 5 * * * *", "provided bad location"},
+		{"OFFSET=30s TZ=Invalid/Location 0 5 * * * *", "provided bad location"},
+	}
+
+	for _, test := range tests {
+		_, err := secondParser.Parse(test.expr)
+		if err == nil || !strings.Contains(err.Error(), test.err) {
+			t.Errorf("%s => expected error containing %q, got %v", test.expr, test.err, err)
+		}
+	}
+}
