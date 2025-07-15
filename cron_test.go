@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -806,4 +807,72 @@ func stop(cron *Cron) chan bool {
 // newWithSeconds returns a Cron with the seconds field enabled.
 func newWithSeconds() *Cron {
 	return New(WithParser(secondParser), WithMiddleware())
+}
+
+func TestCronOffsetIntegration(t *testing.T) {
+	tests := []struct {
+		name     string
+		spec     string
+		offset   time.Duration
+		expected bool
+	}{
+		{
+			name:     "OFFSET= in spec string",
+			spec:     "OFFSET=30s 0 * * * * *",
+			expected: true,
+		},
+		{
+			name:     "WithOffset option",
+			spec:     "0 * * * * *",
+			offset:   30 * time.Second,
+			expected: true,
+		},
+		{
+			name:     "No offset",
+			spec:     "0 * * * * *",
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var c *Cron
+			if test.offset != 0 {
+				c = New(WithSeconds(), WithOffset(test.offset))
+			} else {
+				c = New(WithSeconds())
+			}
+
+			_, err := c.AddFunc(test.spec, func(ctx context.Context) error {
+				return nil
+			})
+
+			if test.expected && err != nil {
+				t.Errorf("expected success but got error: %v", err)
+			} else if !test.expected && err == nil {
+				t.Errorf("expected error but got success")
+			}
+		})
+	}
+}
+
+func TestCronOffsetErrors(t *testing.T) {
+	tests := []struct {
+		spec string
+		err  string
+	}{
+		{"OFFSET=invalid 0 * * * * *", "provided bad offset"},
+		{"OFFSET= 0 * * * * *", "provided bad offset"},
+		{"OFFSET=1x 0 * * * * *", "provided bad offset"},
+	}
+
+	for _, test := range tests {
+		c := New(WithSeconds())
+		_, err := c.AddFunc(test.spec, func(ctx context.Context) error {
+			return nil
+		})
+		if err == nil || !strings.Contains(err.Error(), test.err) {
+			t.Errorf("%s => expected error containing %q, got %v", test.spec, test.err, err)
+		}
+	}
 }
