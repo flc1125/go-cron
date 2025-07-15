@@ -50,3 +50,9 @@ func WithLogger(logger Logger) Option {
 		c.logger = logger
 	}
 }
+
+func WithClock(clock Clock) Option {
+	return func(c *Cron) {
+		c.clock = clock
+	}
+}

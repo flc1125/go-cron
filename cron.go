@@ -7,6 +7,32 @@ import (
 	"time"
 )
 
+type Clock interface {
+	Now() time.Time
+}
+
+type SystemClock struct{}
+
+func (SystemClock) Now() time.Time {
+	return time.Now()
+}
+
+type MockClock struct {
+	time time.Time
+}
+
+func NewMockClock(t time.Time) *MockClock {
+	return &MockClock{time: t}
+}
+
+func (m *MockClock) Now() time.Time {
+	return m.time
+}
+
+func (m *MockClock) SetTime(t time.Time) {
+	m.time = t
+}
+
 // Cron keeps track of any number of entries, invoking the associated func as
 // specified by the schedule. It may be started, stopped, and the entries may
 // be inspected while running.
@@ -25,6 +51,7 @@ type Cron struct {
 	parser      ScheduleParser
 	nextID      EntryID
 	jobWaiter   sync.WaitGroup
+	clock       Clock
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -88,6 +115,7 @@ func New(opts ...Option) *Cron {
 		logger:    DefaultLogger,
 		location:  time.Local,
 		parser:    standardParser,
+		clock:     SystemClock{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -277,7 +305,7 @@ func (c *Cron) startJob(j Job) {
 
 // now returns current time in c location
 func (c *Cron) now() time.Time {
-	return time.Now().In(c.location)
+	return c.clock.Now().In(c.location)
 }
 
 // Stop stops the cron scheduler if it is running; otherwise it does nothing.

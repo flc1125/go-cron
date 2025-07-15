@@ -807,3 +807,54 @@ func stop(cron *Cron) chan bool {
 func newWithSeconds() *Cron {
 	return New(WithParser(secondParser), WithMiddleware())
 }
+
+func TestWithClock(t *testing.T) {
+	mockTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockClock := NewMockClock(mockTime)
+	
+	cron := New(WithClock(mockClock))
+	
+	// Test that now() uses the mock clock
+	now := cron.now()
+	expected := mockTime.In(cron.location)
+	if !now.Equal(expected) {
+		t.Errorf("expected %v, got %v", expected, now)
+	}
+	
+	// Test that updating mock time works
+	newTime := time.Date(2023, 1, 1, 13, 0, 0, 0, time.UTC)
+	mockClock.SetTime(newTime)
+	
+	now = cron.now()
+	expected = newTime.In(cron.location)
+	if !now.Equal(expected) {
+		t.Errorf("expected %v, got %v", expected, now)
+	}
+}
+
+func TestSystemClock(t *testing.T) {
+	clock := SystemClock{}
+	now1 := clock.Now()
+	time.Sleep(time.Millisecond)
+	now2 := clock.Now()
+	
+	if !now2.After(now1) {
+		t.Error("SystemClock should return increasing time")
+	}
+}
+
+func TestMockClock(t *testing.T) {
+	fixedTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	clock := NewMockClock(fixedTime)
+	
+	// Test that it returns the fixed time
+	if !clock.Now().Equal(fixedTime) {
+		t.Error("MockClock should return the fixed time")
+	}
+	
+	newTime := time.Date(2023, 1, 2, 12, 0, 0, 0, time.UTC)
+	clock.SetTime(newTime)
+	if !clock.Now().Equal(newTime) {
+		t.Error("MockClock should return the updated time after SetTime")
+	}
+}
