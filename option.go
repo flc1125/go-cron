@@ -44,6 +44,13 @@ func WithMiddleware(middlewares ...Middleware) Option {
 	}
 }
 
+// WithClock overrides the clock used by the cron instance for time calculations.
+func WithClock(clock Clock) Option {
+	return func(c *Cron) {
+		c.clock = clock
+	}
+}
+
 // WithLogger uses the provided logger.
 func WithLogger(logger Logger) Option {
 	return func(c *Cron) {

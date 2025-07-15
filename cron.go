@@ -25,6 +25,20 @@ type Cron struct {
 	parser      ScheduleParser
 	nextID      EntryID
 	jobWaiter   sync.WaitGroup
+	clock       Clock
+}
+
+// Clock is an interface for time providers that can be used to customize time calculation
+type Clock interface {
+	Now() time.Time
+}
+
+// SystemClock provides the default system time implementation
+type SystemClock struct{}
+
+// Now returns the current system time
+func (SystemClock) Now() time.Time {
+	return time.Now()
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -88,6 +102,7 @@ func New(opts ...Option) *Cron {
 		logger:    DefaultLogger,
 		location:  time.Local,
 		parser:    standardParser,
+		clock:     SystemClock{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -275,9 +290,9 @@ func (c *Cron) startJob(j Job) {
 	}()
 }
 
-// now returns current time in c location
+// now returns current time in c location using the configured clock
 func (c *Cron) now() time.Time {
-	return time.Now().In(c.location)
+	return c.clock.Now().In(c.location)
 }
 
 // Stop stops the cron scheduler if it is running; otherwise it does nothing.
