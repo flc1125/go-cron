@@ -89,28 +89,29 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 		return nil, fmt.Errorf("empty spec string")
 	}
 
-	// Extract timezone if present
+	// Extract timezone and offset if present
 	loc := time.Local
 	var offset time.Duration
-	if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
-		var err error
-		i := strings.Index(spec, " ")
-		eq := strings.Index(spec, "=")
-		if loc, err = time.LoadLocation(spec[eq+1 : i]); err != nil {
-			return nil, fmt.Errorf("provided bad location %s: %v", spec[eq+1:i], err)
+	
+	// Handle both TZ= and OFFSET= prefixes in any order
+	for strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") || strings.HasPrefix(spec, "OFFSET=") {
+		if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
+			var err error
+			i := strings.Index(spec, " ")
+			eq := strings.Index(spec, "=")
+			if loc, err = time.LoadLocation(spec[eq+1 : i]); err != nil {
+				return nil, fmt.Errorf("provided bad location %s: %v", spec[eq+1:i], err)
+			}
+			spec = strings.TrimSpace(spec[i:])
+		} else if strings.HasPrefix(spec, "OFFSET=") {
+			var err error
+			i := strings.Index(spec, " ")
+			eq := strings.Index(spec, "=")
+			if offset, err = time.ParseDuration(spec[eq+1 : i]); err != nil {
+				return nil, fmt.Errorf("provided bad offset %s: %v", spec[eq+1:i], err)
+			}
+			spec = strings.TrimSpace(spec[i:])
 		}
-		spec = strings.TrimSpace(spec[i:])
-	}
-
-	// Extract offset if present
-	if strings.HasPrefix(spec, "OFFSET=") {
-		var err error
-		i := strings.Index(spec, " ")
-		eq := strings.Index(spec, "=")
-		if offset, err = time.ParseDuration(spec[eq+1 : i]); err != nil {
-			return nil, fmt.Errorf("provided bad offset %s: %v", spec[eq+1:i], err)
-		}
-		spec = strings.TrimSpace(spec[i:])
 	}
 
 	// Handle named schedules (descriptors), if configured
