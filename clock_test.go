@@ -10,7 +10,6 @@ import (
 func TestSystemClock(t *testing.T) {
 	utc := time.UTC
 	clock := SystemClock{location: utc}
-	
 	now := clock.Now()
 	if now.Location() != utc {
 		t.Errorf("expected timezone %v, got %v", utc, now.Location())

@@ -139,7 +139,6 @@ func (c *Cron) AddJob(spec string, cmd Job, middlewares ...Middleware) (EntryID,
 	if err := c.extractOffsetFromSpec(&spec); err != nil {
 		return 0, err
 	}
-	
 	schedule, err := c.parser.Parse(spec)
 	if err != nil {
 		return 0, err
