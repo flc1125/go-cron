@@ -92,7 +92,7 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 	// Extract timezone and offset if present
 	loc := time.Local
 	var offset time.Duration
-	
+
 	// Handle both TZ= and OFFSET= prefixes in any order
 	for strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") || strings.HasPrefix(spec, "OFFSET=") {
 		if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
