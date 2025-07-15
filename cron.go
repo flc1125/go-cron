@@ -25,6 +25,7 @@ type Cron struct {
 	parser      ScheduleParser
 	nextID      EntryID
 	jobWaiter   sync.WaitGroup
+	needsSort   bool
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -129,6 +130,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) E
 	)
 	if !c.running {
 		c.entries = append(c.entries, entry)
+		c.needsSort = true
 	} else {
 		c.add <- entry
 	}
@@ -210,7 +212,10 @@ func (c *Cron) run() {
 
 	for {
 		// Determine the next entry to run.
-		sort.Sort(byTime(c.entries))
+		if c.needsSort {
+			sort.Sort(byTime(c.entries))
+			c.needsSort = false
+		}
 
 		var timer *time.Timer
 		if len(c.entries) == 0 || c.entries[0].next.IsZero() {
@@ -235,6 +240,7 @@ func (c *Cron) run() {
 					c.startJob(e.WrappedJob())
 					e.prev = e.next
 					e.next = e.schedule.Next(now)
+					c.needsSort = true
 					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.next)
 				}
 
@@ -243,6 +249,7 @@ func (c *Cron) run() {
 				now = c.now()
 				newEntry.next = newEntry.schedule.Next(now)
 				c.entries = append(c.entries, newEntry)
+				c.needsSort = true
 				c.logger.Info("added", "now", now, "entry", newEntry.ID(), "next", newEntry.next)
 
 			case replyChan := <-c.snapshot:
@@ -258,6 +265,7 @@ func (c *Cron) run() {
 				timer.Stop()
 				now = c.now()
 				c.removeEntry(id)
+				c.needsSort = true
 				c.logger.Info("removed", "entry", id)
 			}
 
