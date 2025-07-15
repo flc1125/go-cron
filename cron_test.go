@@ -836,10 +836,10 @@ func newWithSeconds() *Cron {
 func TestWithClock(t *testing.T) {
 	testClock := &TestClock{now: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)}
 	cron := New(WithClock(testClock), WithLocation(time.UTC))
-	
+
 	// Verify that the clock is used in the cron instance
 	assert.Equal(t, testClock.Now(), cron.now())
-	
+
 	// Advance the test clock and verify the cron uses the new time
 	testClock.Advance(time.Hour)
 	assert.Equal(t, testClock.Now(), cron.now())
@@ -848,11 +848,11 @@ func TestWithClock(t *testing.T) {
 // TestDefaultSystemClock tests that the default clock is SystemClock
 func TestDefaultSystemClock(t *testing.T) {
 	cron := New()
-	
+
 	// The default clock should be SystemClock
 	_, ok := cron.clock.(SystemClock)
 	assert.True(t, ok, "default clock should be SystemClock")
-	
+
 	// The time should be close to the current system time
 	cronTime := cron.now()
 	systemTime := time.Now()
@@ -864,7 +864,7 @@ func TestClockWithTimezone(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	testClock := &TestClock{now: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)}
 	cron := New(WithClock(testClock), WithLocation(loc))
-	
+
 	// The time should be converted to the specified timezone
 	expectedTime := testClock.Now().In(loc)
 	assert.Equal(t, expectedTime, cron.now())
@@ -874,22 +874,22 @@ func TestClockWithTimezone(t *testing.T) {
 func TestClockIntegrationWithScheduling(t *testing.T) {
 	testClock := &TestClock{now: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)}
 	cron := New(WithClock(testClock), WithParser(secondParser))
-	
+
 	var runCount int32
 	_, err := cron.AddFunc("* * * * * ?", func(context.Context) error {
 		atomic.AddInt32(&runCount, 1)
 		return nil
 	})
 	assert.NoError(t, err)
-	
+
 	// Start the cron (but it won't run because time is frozen)
 	cron.Start()
 	defer cron.Stop()
-	
+
 	// No jobs should run yet
 	time.Sleep(10 * time.Millisecond)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&runCount))
-	
+
 	// Note: This test demonstrates that custom clocks can be integrated,
 	// but actually testing job execution requires more complex timing logic
 	// since the real timer still uses system time
@@ -909,18 +909,18 @@ func (oc *OffsetClock) Now() time.Time {
 // Example of how to use the Clock interface for time offset compensation
 func ExampleWithClock() {
 	offsetClock := &OffsetClock{offset: 5 * time.Minute}
-	
+
 	// Create a cron with the custom clock
 	c := New(WithClock(offsetClock))
-	
+
 	// Add jobs as usual - they will use the offset time
 	_, _ = c.AddFunc("0 0 * * *", func(ctx context.Context) error {
 		// This job will run based on the offset time
 		return nil
 	})
-	
+
 	c.Start()
 	defer c.Stop()
-	
+
 	// Jobs will be scheduled using the offset time calculation
 }
