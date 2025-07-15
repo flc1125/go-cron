@@ -299,31 +299,38 @@ func TestSlash0NoHang(t *testing.T) {
 	}
 }
 
-func TestOffset(t *testing.T) {
+func TestOffsetWithClock(t *testing.T) {
 	tests := []struct {
 		time, spec string
 		expected   string
+		offset     time.Duration
 	}{
-		{"Mon Jul 9 14:59:40 2012", "OFFSET=20s 0 * * * * *", "Mon Jul 9 15:00:20 2012"},
-		{"Mon Jul 9 14:59:40 2012", "OFFSET=1m 0 * * * * *", "Mon Jul 9 15:01:00 2012"},
-		{"Mon Jul 9 15:00:20 2012", "OFFSET=-20s 0 * * * * *", "Mon Jul 9 15:00:40 2012"},
-		{"Mon Jul 9 15:01:00 2012", "OFFSET=-1m 0 * * * * *", "Mon Jul 9 15:00:00 2012"},
-		{"2012-03-11T00:00:00-0500", "TZ=America/New_York OFFSET=30s 0 0 * * * ?", "2012-03-11T00:00:30-0500"},
-		{"2012-03-11T00:00:00-0500", "OFFSET=30s TZ=America/New_York 0 0 * * * ?", "2012-03-11T00:00:30-0500"},
-		{"Mon Jul 9 14:59:40 2012", "OFFSET=0s 0 * * * * *", "Mon Jul 9 15:00:00 2012"},
+		{"Mon Jul 9 14:59:40 2012", "0 * * * * *", "Mon Jul 9 15:00:20 2012", 20 * time.Second},
+		{"Mon Jul 9 14:59:40 2012", "0 * * * * *", "Mon Jul 9 15:01:00 2012", 1 * time.Minute},
+		{"Mon Jul 9 15:00:20 2012", "0 * * * * *", "Mon Jul 9 15:00:40 2012", -20 * time.Second},
+		{"Mon Jul 9 15:01:00 2012", "0 * * * * *", "Mon Jul 9 15:00:00 2012", -1 * time.Minute},
+		{"Mon Jul 9 14:59:40 2012", "0 * * * * *", "Mon Jul 9 15:00:00 2012", 0},
 	}
 
 	for _, test := range tests {
-		sched, err := secondParser.Parse(test.spec)
+		c := New(WithSeconds(), WithOffset(test.offset))
+		sched, err := c.parser.Parse(test.spec)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
-		actual := sched.Next(getTime(test.time).Add(-1 * time.Second))
+		
+		baseTime := getTime(test.time).Add(-1 * time.Second)
+		actual := sched.Next(baseTime)
 		expected := getTime(test.expected)
+		
+		if test.offset != 0 {
+			expected = expected.Add(-test.offset)
+		}
+		
 		if !actual.Equal(expected) {
-			t.Errorf("Fail evaluating %s on %s: (expected) %s != %s (actual)",
-				test.spec, test.time, expected, actual)
+			t.Errorf("Fail evaluating %s with offset %v on %s: (expected) %s != %s (actual)",
+				test.spec, test.offset, test.time, expected, actual)
 		}
 	}
 }

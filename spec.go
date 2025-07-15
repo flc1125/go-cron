@@ -9,8 +9,6 @@ type SpecSchedule struct {
 
 	// Override location for this schedule.
 	Location *time.Location
-
-	Offset time.Duration
 }
 
 // bounds provides a range of acceptable values (plus a map of name to value).
@@ -173,7 +171,7 @@ WRAP:
 		}
 	}
 
-	return t.In(origLocation).Add(s.Offset)
+	return t.In(origLocation)
 }
 
 // dayMatches returns true if the schedule's day-of-week and day-of-month

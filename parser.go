@@ -89,11 +89,8 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 		return nil, fmt.Errorf("empty spec string")
 	}
 
-	// Extract timezone and offset if present
+	// Extract timezone if present (OFFSET= is now handled by Clock interface)
 	loc := time.Local
-	var offset time.Duration
-
-	// Handle both TZ= and OFFSET= prefixes in any order
 	for strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") || strings.HasPrefix(spec, "OFFSET=") {
 		if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
 			var err error
@@ -104,12 +101,7 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 			}
 			spec = strings.TrimSpace(spec[i:])
 		} else if strings.HasPrefix(spec, "OFFSET=") {
-			var err error
 			i := strings.Index(spec, " ")
-			eq := strings.Index(spec, "=")
-			if offset, err = time.ParseDuration(spec[eq+1 : i]); err != nil {
-				return nil, fmt.Errorf("provided bad offset %s: %v", spec[eq+1:i], err)
-			}
 			spec = strings.TrimSpace(spec[i:])
 		}
 	}
@@ -161,7 +153,6 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 		Month:    month,
 		Dow:      dayofweek,
 		Location: loc,
-		Offset:   offset,
 	}, nil
 }
 
@@ -388,7 +379,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    1 << months.min,
 			Dow:      all(dow),
 			Location: loc,
-			Offset:   0,
 		}, nil
 
 	case "@monthly":
@@ -400,7 +390,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
-			Offset:   0,
 		}, nil
 
 	case "@weekly":
@@ -412,7 +401,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      1 << dow.min,
 			Location: loc,
-			Offset:   0,
 		}, nil
 
 	case "@daily", "@midnight":
@@ -424,7 +412,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
-			Offset:   0,
 		}, nil
 
 	case "@hourly":
@@ -436,7 +423,6 @@ func parseDescriptor(descriptor string, loc *time.Location) (Schedule, error) {
 			Month:    all(months),
 			Dow:      all(dow),
 			Location: loc,
-			Offset:   0,
 		}, nil
 	}
 

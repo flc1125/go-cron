@@ -3,9 +3,31 @@ package cron
 import (
 	"context"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
+
+type Clock interface {
+	Now() time.Time
+}
+
+type SystemClock struct {
+	location *time.Location
+}
+
+func (c SystemClock) Now() time.Time {
+	return time.Now().In(c.location)
+}
+
+type OffsetClock struct {
+	base   Clock
+	offset time.Duration
+}
+
+func (c OffsetClock) Now() time.Time {
+	return c.base.Now().Add(c.offset)
+}
 
 // Cron keeps track of any number of entries, invoking the associated func as
 // specified by the schedule. It may be started, stopped, and the entries may
@@ -25,7 +47,7 @@ type Cron struct {
 	parser      ScheduleParser
 	nextID      EntryID
 	jobWaiter   sync.WaitGroup
-	offset      time.Duration
+	clock       Clock
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -89,7 +111,7 @@ func New(opts ...Option) *Cron {
 		logger:    DefaultLogger,
 		location:  time.Local,
 		parser:    standardParser,
-		offset:    0,
+		clock:     SystemClock{location: time.Local},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -113,11 +135,41 @@ func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error, middlew
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque id is returned that can be used to later remove it.
 func (c *Cron) AddJob(spec string, cmd Job, middlewares ...Middleware) (EntryID, error) {
+	if err := c.extractOffsetFromSpec(spec); err != nil {
+		return 0, err
+	}
+	
 	schedule, err := c.parser.Parse(spec)
 	if err != nil {
 		return 0, err
 	}
 	return c.Schedule(schedule, cmd, middlewares...), nil
+}
+
+func (c *Cron) extractOffsetFromSpec(spec string) error {
+	if !strings.HasPrefix(spec, "OFFSET=") {
+		return nil
+	}
+	
+	i := strings.Index(spec, " ")
+	if i == -1 {
+		return fmt.Errorf("invalid OFFSET= specification")
+	}
+	
+	eq := strings.Index(spec, "=")
+	offsetStr := spec[eq+1 : i]
+	
+	offset, err := time.ParseDuration(offsetStr)
+	if err != nil {
+		return fmt.Errorf("provided bad offset %s: %v", offsetStr, err)
+	}
+	
+	c.clock = OffsetClock{
+		base:   c.clock,
+		offset: offset,
+	}
+	
+	return nil
 }
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
@@ -277,9 +329,9 @@ func (c *Cron) startJob(j Job) {
 	}()
 }
 
-// now returns current time in c location
+// now returns current time from the configured clock
 func (c *Cron) now() time.Time {
-	return time.Now().In(c.location)
+	return c.clock.Now()
 }
 
 // Stop stops the cron scheduler if it is running; otherwise it does nothing.

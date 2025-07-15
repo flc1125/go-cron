@@ -166,7 +166,6 @@ func TestParseSchedule(t *testing.T) {
 				Month:    all(months),
 				Dow:      all(dow),
 				Location: time.Local,
-				Offset:   0,
 			},
 		},
 	}
@@ -321,7 +320,7 @@ func TestStandardSpecSchedule(t *testing.T) {
 	}{
 		{
 			expr:     "5 * * * *",
-			expected: &SpecSchedule{1 << seconds.min, 1 << 5, all(hours), all(dom), all(months), all(dow), time.Local, 0},
+			expected: &SpecSchedule{1 << seconds.min, 1 << 5, all(hours), all(dom), all(months), all(dow), time.Local},
 		},
 		{
 			expr:     "@every 5m",
@@ -360,15 +359,15 @@ func TestNoDescriptorParser(t *testing.T) {
 }
 
 func every5min(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1 << 0, 1 << 5, all(hours), all(dom), all(months), all(dow), loc, 0}
+	return &SpecSchedule{1 << 0, 1 << 5, all(hours), all(dom), all(months), all(dow), loc}
 }
 
 func every5min5s(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1 << 5, 1 << 5, all(hours), all(dom), all(months), all(dow), loc, 0}
+	return &SpecSchedule{1 << 5, 1 << 5, all(hours), all(dom), all(months), all(dow), loc}
 }
 
 func midnight(loc *time.Location) *SpecSchedule {
-	return &SpecSchedule{1, 1, 1, all(dom), all(months), all(dow), loc, 0}
+	return &SpecSchedule{1, 1, 1, all(dom), all(months), all(dow), loc}
 }
 
 func annual(loc *time.Location) *SpecSchedule {
@@ -425,7 +424,6 @@ func TestParseOffset(t *testing.T) {
 				Month:    all(months),
 				Dow:      all(dow),
 				Location: time.Local,
-				Offset:   0,
 			},
 		},
 	}
