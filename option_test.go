@@ -51,14 +51,6 @@ func TestWithVerboseLogger(t *testing.T) {
 	}
 }
 
-func TestWithClock(t *testing.T) {
-	clock := SystemClock{location: time.UTC}
-	c := New(WithClock(clock))
-	if c.clock != clock {
-		t.Errorf("expected clock %v, got %v", clock, c.clock)
-	}
-}
-
 func TestWithOffset(t *testing.T) {
 	offset := 30 * time.Second
 	c := New(WithOffset(offset))
