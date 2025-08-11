@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/golangci/golangci-lint/v2 v2.3.1
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	go.opentelemetry.io/build-tools/multimod v0.26.0
+	go.opentelemetry.io/build-tools/multimod v0.26.1
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a
 )
 
@@ -209,7 +209,7 @@ require (
 	go-simpler.org/sloglint v0.11.1 // indirect
 	go.augendre.info/arangolint v0.2.0 // indirect
 	go.augendre.info/fatcontext v0.8.0 // indirect
-	go.opentelemetry.io/build-tools v0.26.0 // indirect
+	go.opentelemetry.io/build-tools v0.26.1 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
