@@ -8,7 +8,7 @@
   "separateMajorMinor": true,
   "postUpdateOptions": ["gomodTidy"],
   "constraints": {
-    "go": "1.23.0"
+    "go": "1.24.0"
   },
   "packageRules": [
     {
@@ -19,7 +19,7 @@
     {
       "matchFileNames": ["internal/tools/go.mod"],
       "constraints": {
-        "go": "1.23.0"
+        "go": "1.24.0"
       },
       "enabled": true
     },
