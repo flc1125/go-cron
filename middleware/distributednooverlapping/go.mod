@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/flc1125/go-cron/crontest/v4 v4.6.0
 	github.com/flc1125/go-cron/v4 v4.6.0
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
