@@ -28,7 +28,7 @@ func (sw *syncWriter) Write(data []byte) (n int, err error) {
 	sw.m.Lock()
 	n, err = sw.wr.Write(data)
 	sw.m.Unlock()
-	return
+	return n, err
 }
 
 func (sw *syncWriter) String() string {
