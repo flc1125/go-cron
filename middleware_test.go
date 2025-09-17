@@ -36,7 +36,7 @@ func TestChain(t *testing.T) {
 		append3 = appendingWrapper(&nums, 3)
 		append4 = appendingJob(&nums, 4)
 	)
-	Chain(append1, append2, append3)(append4).Run(context.Background()) //nolint:errcheck
+	Chain(append1, append2, append3)(append4).Run(t.Context()) //nolint:errcheck
 	if !reflect.DeepEqual(nums, []int{1, 2, 3, 4}) {
 		t.Error("unexpected order of calls:", nums)
 	}
@@ -45,6 +45,6 @@ func TestChain(t *testing.T) {
 func TestMiddleware_NoopMiddleware(t *testing.T) {
 	err := NoopMiddleware()(JobFunc(func(context.Context) error {
 		return nil
-	})).Run(context.Background())
+	})).Run(t.Context())
 	assert.NoError(t, err)
 }

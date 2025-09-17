@@ -50,7 +50,7 @@ func TestIssue190(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer rdb.FlushAll(context.Background())
+	defer rdb.FlushAll(t.Context())
 
 	mutex := redismutex.New(rdb, redismutex.WithPrefix("cron"))
 	imsb := tracetest.NewInMemoryExporter()
