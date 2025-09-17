@@ -12,7 +12,7 @@ import (
 
 func TestWithContext(t *testing.T) {
 	type key struct{}
-	ctx := context.WithValue(context.Background(), key{}, "value")
+	ctx := context.WithValue(t.Context(), key{}, "value")
 	c := New(WithContext(ctx))
 	assert.Equal(t, "value", c.ctx.Value(key{}))
 }

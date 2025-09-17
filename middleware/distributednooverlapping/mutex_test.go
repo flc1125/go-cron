@@ -1,7 +1,6 @@
 package distributednooverlapping
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 
 func TestMutex_NoopMutex(t *testing.T) {
 	m := NoopMutex{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	acquired, err := m.Lock(ctx, nil)
 	assert.NoError(t, err)

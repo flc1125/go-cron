@@ -26,7 +26,7 @@ func TestRecovery(t *testing.T) {
 	assert.NotPanics(t, func() {
 		_ = recovery(cron.JobFunc(func(context.Context) error {
 			panic("YOLO")
-		})).Run(context.Background())
+		})).Run(t.Context())
 	})
 
 	assert.True(t, strings.Contains(buf.String(), "YOLO"))
@@ -77,7 +77,7 @@ func TestRecovery_JobPanic(t *testing.T) {
 func TestRecovery_ChainPanic(t *testing.T) {
 	t.Run("default panic exits job", func(*testing.T) {
 		assert.Panics(t, func() {
-			_ = cron.Chain()(panicJob{}).Run(context.Background())
+			_ = cron.Chain()(panicJob{}).Run(t.Context())
 		})
 	})
 
@@ -86,7 +86,7 @@ func TestRecovery_ChainPanic(t *testing.T) {
 		assert.NotPanics(t, func() {
 			_ = cron.Chain(
 				New(WithLogger(logger.NewBufferLogger(&buf))),
-			)(panicJob{}).Run(context.Background())
+			)(panicJob{}).Run(t.Context())
 		})
 		assert.True(t, strings.Contains(buf.String(), "YOLO"))
 	})
