@@ -1,23 +1,29 @@
 package nooverlapping
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/flc1125/go-cron/crontest/v4/logger"
 	"github.com/flc1125/go-cron/v4"
 )
 
 var (
 	ctx           = context.Background()
-	buf           = logger.NewBuffer()
-	noOverlapping = New(WithLogger(logger.NewBufferLogger(buf)))
+	buf, logger   = newBufferLogger()
+	noOverlapping = New(WithLogger(logger))
 	wg            = sync.WaitGroup{}
 )
+
+func newBufferLogger() (*bytes.Buffer, cron.Logger) {
+	buf := new(bytes.Buffer)
+	return buf, cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags))
+}
 
 func TestNoOverlapping(t *testing.T) {
 	buf.Reset()
