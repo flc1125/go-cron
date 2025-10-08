@@ -2,11 +2,13 @@ package otel
 
 import (
 	"context"
+	"time"
 
 	"github.com/flc1125/go-cron/v4"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -21,6 +23,7 @@ var (
 
 type options struct {
 	tp trace.TracerProvider
+	mp metric.MeterProvider
 }
 
 type Option func(*options)
@@ -31,9 +34,16 @@ func WithTracerProvider(tp trace.TracerProvider) Option {
 	}
 }
 
+func WithMeterProvider(mp metric.MeterProvider) Option {
+	return func(o *options) {
+		o.mp = mp
+	}
+}
+
 func newOption(opts ...Option) *options {
 	opt := &options{
 		tp: otel.GetTracerProvider(),
+		mp: otel.GetMeterProvider(),
 	}
 	for _, o := range opts {
 		o(opt)
@@ -50,9 +60,24 @@ type JobWithName interface {
 
 func New(opts ...Option) cron.Middleware {
 	o := newOption(opts...)
-	tracer := o.tp.Tracer(scopeName)
+	tracer := o.tp.Tracer(
+		scopeName,
+		trace.WithInstrumentationVersion(cron.Version()),
+	)
+	meter := o.mp.Meter(
+		scopeName,
+		metric.WithInstrumentationVersion(cron.Version()),
+	)
+	inst := newMetrics(meter)
 	return func(original cron.Job) cron.Job {
-		return cron.JobFunc(func(ctx context.Context) error {
+		return cron.JobFunc(func(ctx context.Context) (err error) {
+			inst.counter.Add(ctx, 1)
+			inst.inflight.Add(ctx, 1)
+			defer func(start time.Time) {
+				inst.inflight.Add(ctx, -1)
+				inst.duration.Record(ctx, time.Since(start).Seconds())
+			}(time.Now())
+
 			entry, ok := cron.EntryFromContext(ctx)
 			if !ok {
 				return original.Run(ctx)
@@ -75,7 +100,7 @@ func New(opts ...Option) cron.Middleware {
 				attrJobNextTime.String(entry.Next().String()),
 			)
 
-			err := job.Run(ctx)
+			err = job.Run(ctx)
 			if err != nil {
 				span.SetStatus(codes.Error, err.Error())
 				span.RecordError(err)
