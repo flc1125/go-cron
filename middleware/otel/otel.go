@@ -89,14 +89,13 @@ func New(opts ...Option) cron.Middleware {
 				attrJobID.Int(int(entry.ID())),
 				attrJobName.String(job.Name()),
 			}
-
-			m.counter.Add(ctx, 1, metric.WithAttributes(*metricAttrs...))
 			m.inflight.Add(ctx, 1, metric.WithAttributes(*metricAttrs...))
 			defer func(start time.Time) {
+				m.inflight.Add(ctx, -1, metric.WithAttributes(*metricAttrs...))
 				if err != nil {
 					*metricAttrs = append(*metricAttrs, semconv.ErrorType(err))
 				}
-				m.inflight.Add(ctx, -1, metric.WithAttributes(*metricAttrs...))
+				m.counter.Add(ctx, 1, metric.WithAttributes(*metricAttrs...))
 				m.duration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(*metricAttrs...))
 				putMetricsAttrs(metricAttrs)
 			}(time.Now())
