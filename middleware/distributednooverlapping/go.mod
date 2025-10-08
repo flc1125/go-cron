@@ -2,13 +2,9 @@ module github.com/flc1125/go-cron/middleware/distributednooverlapping/v4
 
 go 1.24.0
 
-replace (
-	github.com/flc1125/go-cron/crontest/v4 => ../../crontest
-	github.com/flc1125/go-cron/v4 => ../../
-)
+replace github.com/flc1125/go-cron/v4 => ../../
 
 require (
-	github.com/flc1125/go-cron/crontest/v4 v4.6.2
 	github.com/flc1125/go-cron/v4 v4.6.2
 	github.com/stretchr/testify v1.11.1
 )

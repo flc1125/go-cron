@@ -1,15 +1,21 @@
 package recovery
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/flc1125/go-cron/crontest/v4/logger"
 	"github.com/flc1125/go-cron/v4"
 	"github.com/stretchr/testify/assert"
 )
+
+func newBufferLogger() (*bytes.Buffer, cron.Logger) {
+	buf := new(bytes.Buffer)
+	return buf, cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags))
+}
 
 type panicJob struct{}
 
@@ -18,9 +24,9 @@ func (p panicJob) Run(context.Context) error {
 }
 
 func TestRecovery(t *testing.T) {
-	buf := logger.NewBuffer()
+	buf, logger := newBufferLogger()
 	recovery := New(
-		WithLogger(logger.NewBufferLogger(buf)),
+		WithLogger(logger),
 	)
 
 	assert.NotPanics(t, func() {
@@ -33,12 +39,12 @@ func TestRecovery(t *testing.T) {
 }
 
 func TestRecovery_FuncPanic(t *testing.T) {
-	buf := logger.NewBuffer()
+	buf, logger := newBufferLogger()
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithMiddleware(
 			New(
-				WithLogger(logger.NewBufferLogger(buf)),
+				WithLogger(logger),
 			),
 		),
 	)
@@ -55,12 +61,12 @@ func TestRecovery_FuncPanic(t *testing.T) {
 }
 
 func TestRecovery_JobPanic(t *testing.T) {
-	buf := logger.NewBuffer()
+	buf, logger := newBufferLogger()
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithMiddleware(
 			New(
-				WithLogger(logger.NewBufferLogger(buf)),
+				WithLogger(logger),
 			),
 		),
 	)
@@ -82,10 +88,10 @@ func TestRecovery_ChainPanic(t *testing.T) {
 	})
 
 	t.Run("recovering job wrapper recovers", func(*testing.T) {
-		var buf logger.Buffer
+		buf, logger := newBufferLogger()
 		assert.NotPanics(t, func() {
 			_ = cron.Chain(
-				New(WithLogger(logger.NewBufferLogger(&buf))),
+				New(WithLogger(logger)),
 			)(panicJob{}).Run(t.Context())
 		})
 		assert.True(t, strings.Contains(buf.String(), "YOLO"))

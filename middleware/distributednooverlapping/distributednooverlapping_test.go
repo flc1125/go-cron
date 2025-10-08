@@ -1,17 +1,26 @@
 package distributednooverlapping
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/flc1125/go-cron/crontest/v4/logger"
 	"github.com/flc1125/go-cron/v4"
 	"github.com/stretchr/testify/assert"
 )
 
-var ctx = context.Background()
+var (
+	ctx         = context.Background()
+	buf, logger = newBufferLogger()
+)
+
+func newBufferLogger() (*bytes.Buffer, cron.Logger) {
+	buf := new(bytes.Buffer)
+	return buf, cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags))
+}
 
 type testJob struct {
 	cron.Job
@@ -50,13 +59,14 @@ func (m testMutex) Unlock(context.Context, JobWithMutex) error {
 }
 
 func TestMiddleware_Noop(t *testing.T) {
-	buffer := logger.NewBuffer()
+	buf.Reset()
+
 	ch := make(chan struct{}, 200)
 	wg := sync.WaitGroup{}
 
 	noopMiddleware := New(
 		NoopMutex{},
-		WithLogger(logger.NewBufferLogger(buffer)),
+		WithLogger(logger),
 	)
 
 	for i := 0; i < 100; i++ {
@@ -86,7 +96,7 @@ func TestMiddleware_Noop(t *testing.T) {
 
 	wg.Wait()
 	assert.Len(t, ch, 200)
-	assert.Empty(t, buffer.String())
+	assert.Empty(t, buf.String())
 }
 
 // func TestMiddleware_Mutex(t *testing.T) {
