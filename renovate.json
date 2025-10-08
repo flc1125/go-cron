@@ -28,8 +28,8 @@
       "groupName": "golang.org/x"
     },
     {
-      "matchPackageNames": ["go.opentelemetry.io/build-tools/**"],
-      "groupName": "opentelemetry-build-tools"
+      "matchPackageNames": ["go.opentelemetry.io/build-tools/**", "go.opentelemetry.io/build-tools"],
+      "groupName": "go.opentelemetry.io/build-tools"
     }
   ]
 }
