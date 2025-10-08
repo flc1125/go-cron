@@ -3,7 +3,6 @@ module github.com/flc1125/go-cron/middleware/delayoverlapping/v4
 go 1.24.0
 
 replace (
-	github.com/flc1125/go-cron/crontest/v4 => ../../crontest
 	github.com/flc1125/go-cron/v4 => ../../
 )
 
