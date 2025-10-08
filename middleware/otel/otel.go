@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -68,16 +69,9 @@ func New(opts ...Option) cron.Middleware {
 		scopeName,
 		metric.WithInstrumentationVersion(cron.Version()),
 	)
-	inst := newMetrics(meter)
+	m := newMetrics(meter)
 	return func(original cron.Job) cron.Job {
 		return cron.JobFunc(func(ctx context.Context) (err error) {
-			inst.counter.Add(ctx, 1)
-			inst.inflight.Add(ctx, 1)
-			defer func(start time.Time) {
-				inst.inflight.Add(ctx, -1)
-				inst.duration.Record(ctx, time.Since(start).Seconds())
-			}(time.Now())
-
 			entry, ok := cron.EntryFromContext(ctx)
 			if !ok {
 				return original.Run(ctx)
@@ -88,6 +82,24 @@ func New(opts ...Option) cron.Middleware {
 				return original.Run(ctx)
 			}
 
+			// metrics
+			metricAttrs := make([]attribute.KeyValue, 0, 3)
+			metricAttrs = []attribute.KeyValue{
+				attrJobID.Int(int(entry.ID())),
+				attrJobName.String(job.Name()),
+			}
+
+			m.counter.Add(ctx, 1, metric.WithAttributes(metricAttrs...))
+			m.inflight.Add(ctx, 1, metric.WithAttributes(metricAttrs...))
+			defer func(start time.Time) {
+				if err != nil {
+					metricAttrs = append(metricAttrs, semconv.ErrorType(err))
+				}
+				m.inflight.Add(ctx, -1, metric.WithAttributes(metricAttrs...))
+				m.duration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(metricAttrs...))
+			}(time.Now())
+
+			// trace
 			ctx, span := tracer.Start(ctx, "cron "+job.Name(),
 				trace.WithSpanKind(trace.SpanKindInternal),
 			)

@@ -18,6 +18,14 @@ type metrics struct {
 func newMetrics(
 	meter metric.Meter,
 ) *metrics {
+	if meter == nil {
+		return &metrics{
+			counter:  noop.Int64Counter{},
+			inflight: noop.Int64UpDownCounter{},
+			duration: noop.Float64Histogram{},
+		}
+	}
+
 	var err error
 	counter, e := meter.Int64Counter(
 		"cron.job.run.counter",
