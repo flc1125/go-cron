@@ -107,7 +107,7 @@ func TestMetrics(t *testing.T) {
 		&mockJob{t: t, name: jobName, err: nil}, cron.WithEntryMiddlewares(middleware),
 	)
 
-	require.NoError(t, entry.WrappedJob().Run(context.Background()))
+	require.NoError(t, entry.WrappedJob().Run(t.Context()))
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, r.Collect(ctx, &rm))

@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/flc1125/go-cron/v4"
@@ -83,20 +84,21 @@ func New(opts ...Option) cron.Middleware {
 			}
 
 			// metrics
-			metricAttrs := make([]attribute.KeyValue, 0, 3)
-			metricAttrs = []attribute.KeyValue{
+			metricAttrs := getMetricsAttrs()
+			*metricAttrs = []attribute.KeyValue{
 				attrJobID.Int(int(entry.ID())),
 				attrJobName.String(job.Name()),
 			}
 
-			m.counter.Add(ctx, 1, metric.WithAttributes(metricAttrs...))
-			m.inflight.Add(ctx, 1, metric.WithAttributes(metricAttrs...))
+			m.counter.Add(ctx, 1, metric.WithAttributes(*metricAttrs...))
+			m.inflight.Add(ctx, 1, metric.WithAttributes(*metricAttrs...))
 			defer func(start time.Time) {
 				if err != nil {
-					metricAttrs = append(metricAttrs, semconv.ErrorType(err))
+					*metricAttrs = append(*metricAttrs, semconv.ErrorType(err))
 				}
-				m.inflight.Add(ctx, -1, metric.WithAttributes(metricAttrs...))
-				m.duration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(metricAttrs...))
+				m.inflight.Add(ctx, -1, metric.WithAttributes(*metricAttrs...))
+				m.duration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(*metricAttrs...))
+				putMetricsAttrs(metricAttrs)
 			}(time.Now())
 
 			// trace
@@ -121,4 +123,20 @@ func New(opts ...Option) cron.Middleware {
 			return err
 		})
 	}
+}
+
+var metricsAttrsPool = sync.Pool{
+	New: func() any {
+		attrs := make([]attribute.KeyValue, 0, 3)
+		return &attrs
+	},
+}
+
+func getMetricsAttrs() *[]attribute.KeyValue {
+	return metricsAttrsPool.Get().(*[]attribute.KeyValue)
+}
+
+func putMetricsAttrs(attrs *[]attribute.KeyValue) {
+	*attrs = (*attrs)[:0]
+	metricsAttrsPool.Put(attrs)
 }
