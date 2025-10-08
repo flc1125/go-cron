@@ -1,28 +1,34 @@
 package delayoverlapping
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/flc1125/go-cron/crontest/v4/logger"
 	"github.com/flc1125/go-cron/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	ctx = context.Background()
-	buf = logger.NewBuffer()
-	wg  = sync.WaitGroup{}
+	ctx         = context.Background()
+	buf, logger = newBufferLogger()
+	wg          = sync.WaitGroup{}
 )
+
+func newBufferLogger() (*bytes.Buffer, cron.Logger) {
+	buf := new(bytes.Buffer)
+	return buf, cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags))
+}
 
 func TestDelayOverlapping(t *testing.T) {
 	buf.Reset()
 
 	var (
 		delayOverlapping = New(
-			WithLogger(logger.NewBufferLogger(buf)),
+			WithLogger(logger),
 			WithReminderTime(1*time.Millisecond),
 		)
 		ch  = make(chan struct{}, 100)
@@ -55,7 +61,7 @@ func TestDelayOverlapping_Chain(t *testing.T) {
 
 	var (
 		delayOverlapping = New(
-			WithLogger(logger.NewBufferLogger(buf)),
+			WithLogger(logger),
 			WithReminderTime(1*time.Millisecond),
 		)
 		ch  = make(chan struct{}, 100)
