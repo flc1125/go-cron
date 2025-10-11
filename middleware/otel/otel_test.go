@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"math/rand/v2"
 	"testing"
 
 	"github.com/flc1125/go-cron/v4"
@@ -66,10 +65,16 @@ func TestTracing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer imsb.Reset()
 
-			entry := cron.NewEntry(
-				cron.EntryID(rand.IntN(10)), nil,
-				&mockJob{t: t, name: tt.name, err: tt.error}, cron.WithEntryMiddlewares(middleware),
-			)
+			// Create a cron instance with the middleware
+			c := cron.New(cron.WithMiddleware(middleware))
+
+			// Add the job
+			entryID, err := c.AddJob("@every 1h", &mockJob{t: t, name: tt.name, err: tt.error})
+			require.NoError(t, err)
+
+			// Get the entry to access the wrapped job
+			entry := c.Entry(entryID)
+			require.True(t, entry.Valid())
 
 			require.Equal(t, tt.error, entry.WrappedJob().Run(ctx))
 			require.Len(t, imsb.GetSpans(), 1)
@@ -102,10 +107,17 @@ func TestMetrics(t *testing.T) {
 	middleware := New(WithMeterProvider(mp))
 
 	jobName := "metric-job"
-	entry := cron.NewEntry(
-		cron.EntryID(1), nil,
-		&mockJob{t: t, name: jobName, err: nil}, cron.WithEntryMiddlewares(middleware),
-	)
+
+	// Create a cron instance with the middleware
+	c := cron.New(cron.WithMiddleware(middleware))
+
+	// Add the job
+	entryID, err := c.AddJob("@every 1h", &mockJob{t: t, name: jobName, err: nil})
+	require.NoError(t, err)
+
+	// Get the entry to access the wrapped job
+	entry := c.Entry(entryID)
+	require.True(t, entry.Valid())
 
 	require.NoError(t, entry.WrappedJob().Run(t.Context()))
 
@@ -129,7 +141,7 @@ func TestMetrics(t *testing.T) {
 			DataPoints: []metricdata.DataPoint[int64]{
 				{
 					Attributes: attribute.NewSet(
-						attribute.Int64("cron.job.id", 1),
+						attribute.Int64("cron.job.id", int64(entry.ID())),
 						attribute.String("cron.job.name", jobName),
 					),
 					Value: 1,
@@ -149,7 +161,7 @@ func TestMetrics(t *testing.T) {
 			DataPoints: []metricdata.DataPoint[int64]{
 				{
 					Attributes: attribute.NewSet(
-						attribute.Int64("cron.job.id", 1),
+						attribute.Int64("cron.job.id", int64(entry.ID())),
 						attribute.String("cron.job.name", jobName),
 					),
 					Value: 0,
@@ -169,7 +181,7 @@ func TestMetrics(t *testing.T) {
 			DataPoints: []metricdata.HistogramDataPoint[float64]{
 				{
 					Attributes: attribute.NewSet(
-						attribute.Int64("cron.job.id", 1),
+						attribute.Int64("cron.job.id", int64(entry.ID())),
 						attribute.String("cron.job.name", jobName),
 					),
 					Count: 1,

@@ -44,8 +44,8 @@ func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 	}
 }
 
-// NewEntry creates a new entry with the given schedule and job.
-func NewEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
+// newEntry creates a new entry with the given schedule and job.
+func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entry {
 	entry := &Entry{
 		id:       id,
 		schedule: schedule,
