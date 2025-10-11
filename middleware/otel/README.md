@@ -2,6 +2,13 @@
 
 The `otel` is a middleware for that provides observability with OpenTelemetry.
 
+> [!WARNING]  
+> **Unstable Semantic Conventions**
+>
+> OpenTelemetry has not yet defined semantic conventions that align with cron job scheduling and execution. As a result, all metrics, attributes, and trace semantics provided by this middleware are custom-defined and subject to change.
+>
+> These conventions will remain unstable until OTel releases official semantic conventions for cron-like workloads. When that happens, this middleware will be updated to adopt the official conventions, which **will be a breaking change** that may require updates to your dashboards, queries, and alerting rules.
+
 ## Usage
 
 ```go
