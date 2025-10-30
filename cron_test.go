@@ -18,6 +18,7 @@ import (
 const OneSecond = 1*time.Second + 50*time.Millisecond //nolint:revive
 
 // syncWriter is a threadsafe writer.
+//
 // Deprecated: use logger.NewBufferLogger instead.
 type syncWriter struct {
 	wr bytes.Buffer
@@ -206,8 +207,8 @@ func TestMultipleEntries(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	_, _ = cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil }) //nolint:errcheck
-	_, _ = cron.AddFunc("* * * * * ?", func(context.Context) error {               //nolint:errcheck
+	_, _ = cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("* * * * * ?", func(context.Context) error {
 		wg.Done()
 		return nil
 	})
@@ -219,8 +220,8 @@ func TestMultipleEntries(t *testing.T) {
 		t.Fatal()
 		return nil
 	})
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+	_, _ = cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("* * * * * ?", func(context.Context) error {
 		wg.Done()
 		return nil
 	})
@@ -243,9 +244,9 @@ func TestRunningJobTwice(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })   //nolint:errcheck
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+	_, _ = cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("* * * * * ?", func(context.Context) error {
 		wg.Done()
 		return nil
 	})
@@ -265,9 +266,9 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	wg.Add(2)
 
 	cron := newWithSeconds()
-	cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })   //nolint:errcheck
-	cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil }) //nolint:errcheck
-	cron.AddFunc("* * * * * ?", func(context.Context) error {                 //nolint:errcheck
+	_, _ = cron.AddFunc("0 0 0 1 1 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil })
+	_, _ = cron.AddFunc("* * * * * ?", func(context.Context) error {
 		wg.Done()
 		return nil
 	})
@@ -718,13 +719,13 @@ func TestStopAndWait(t *testing.T) {
 
 	t.Run("repeated calls to stop, waiting for completion and after", func(t *testing.T) {
 		cron := newWithSeconds()
-		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
-		cron.AddFunc("* * * * * *", func(context.Context) error {               //nolint:errcheck
+		_, _ = cron.AddFunc("* * * * * *", func(context.Context) error { return nil })
+		_, _ = cron.AddFunc("* * * * * *", func(context.Context) error {
 			time.Sleep(2 * time.Second)
 			return nil
 		})
 		cron.Start()
-		cron.AddFunc("* * * * * *", func(context.Context) error { return nil }) //nolint:errcheck
+		_, _ = cron.AddFunc("* * * * * *", func(context.Context) error { return nil })
 		time.Sleep(time.Second)
 		ctx := cron.Stop()
 		ctx2 := cron.Stop()
