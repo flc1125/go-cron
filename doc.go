@@ -136,4 +136,18 @@
 //
 // The cron scheduler is thread-safe and can be safely accessed from multiple
 // goroutines. All public methods are protected by appropriate synchronization.
+//
+// # Performance Characteristics
+//
+// Time and space complexity for common operations:
+//
+//   - AddJob/AddFunc: O(1) time, O(1) space
+//   - Remove: O(n) time where n is the number of scheduled entries
+//   - Entries: O(n) time, O(n) space for snapshot creation
+//   - Schedule.Next: O(1) time for most cases, may iterate up to 5 years
+//   - ParseStandard: O(m) where m is the length of the cron expression
+//
+// The scheduler maintains entries in a slice and sorts them on each scheduling
+// decision. For workloads with frequent additions/removals, consider batching
+// operations when possible.
 package cron
