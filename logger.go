@@ -75,13 +75,12 @@ func formatString(numKeysAndValues int) string {
 
 // formatTimes formats any time.Time values as RFC3339.
 func formatTimes(keysAndValues []any) []any {
-	formattedArgs := make([]any, len(keysAndValues))
-	for i, arg := range keysAndValues {
+	var formattedArgs []any // nolint:prealloc
+	for _, arg := range keysAndValues {
 		if t, ok := arg.(time.Time); ok {
-			formattedArgs[i] = t.Format(time.RFC3339)
-		} else {
-			formattedArgs[i] = arg
+			arg = t.Format(time.RFC3339)
 		}
+		formattedArgs = append(formattedArgs, arg)
 	}
 	return formattedArgs
 }
