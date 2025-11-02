@@ -312,11 +312,10 @@ func (c *Cron) entrySnapshot() []Entry {
 }
 
 func (c *Cron) removeEntry(id EntryID) {
-	var entries []*Entry
-	for _, e := range c.entries {
-		if e.ID() != id {
-			entries = append(entries, e)
+	for i, e := range c.entries {
+		if e.ID() == id {
+			c.entries = append(c.entries[:i], c.entries[i+1:]...)
+			return
 		}
 	}
-	c.entries = entries
 }
