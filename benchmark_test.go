@@ -87,7 +87,7 @@ func BenchmarkJobExecution(b *testing.B) {
 	_, _ = c.AddFunc("* * * * * *", func(ctx context.Context) error {
 		executed++
 		return nil
-	}, NoopMiddleware())
+	})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -114,26 +114,18 @@ func BenchmarkEntrySnapshot(b *testing.B) {
 
 // BenchmarkRemoveEntry benchmarks removing entries
 func BenchmarkRemoveEntry(b *testing.B) {
-	c := New()
-	// Pre-add jobs
-	ids := make([]EntryID, 100)
-	for i := 0; i < 100; i++ {
-		id, _ := c.AddFunc("* * * * *", func(ctx context.Context) error {
-			return nil
-		})
-		ids[i] = id
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Create a fresh cron for each iteration
 		c := New()
+		ids := make([]EntryID, 100)
 		for j := 0; j < 100; j++ {
-			_, _ = c.AddFunc("* * * * *", func(ctx context.Context) error {
+			id, _ := c.AddFunc("* * * * *", func(ctx context.Context) error {
 				return nil
 			})
+			ids[j] = id
 		}
-		// Remove middle entry
-		c.removeEntry(EntryID(50))
+		// Remove middle entry (50th entry)
+		c.removeEntry(ids[50])
 	}
 }
