@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.7.1
 	github.com/flc1125/go-cron/v4 v4.7.1
-	github.com/redis/go-redis/v9 v9.17.0
+	github.com/redis/go-redis/v9 v9.17.1
 	github.com/stretchr/testify v1.11.1
 )
 
