@@ -1,6 +1,6 @@
 module github.com/flc1125/go-cron/middleware/nooverlapping/v4
 
-go 1.24.0
+go 1.25.0
 
 replace github.com/flc1125/go-cron/v4 => ../../
 
