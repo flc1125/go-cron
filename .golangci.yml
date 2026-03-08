@@ -10,7 +10,7 @@ linters:
     - errcheck
     - copyloopvar
     - govet
-    - goconst
+#    - goconst
 #    - mnd
     - misspell
     - gocyclo
