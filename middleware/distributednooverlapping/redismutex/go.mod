@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.8.0
-	github.com/flc1125/go-cron/v4 v4.8.0
+	github.com/flc1125/go-cron/middleware/distributednooverlapping/v4 v4.8.1
+	github.com/flc1125/go-cron/v4 v4.8.1
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/stretchr/testify v1.11.1
 )
