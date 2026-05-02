@@ -5,24 +5,26 @@ linters:
 
   enable:
     - bodyclose
+    - copyloopvar
     - dogsled
     - durationcheck
     - errcheck
-    - copyloopvar
-    - govet
-#    - mnd
-    - misspell
-    - gocyclo
     - gocritic
+    - gocyclo
+    - gomoddirectives
+    - govet
     - ineffassign
+    - misspell
+    - modernize
+    - nolintlint
     - prealloc
     - revive
     - staticcheck
-    - unused
-    - whitespace
-    - wastedassign
     - unconvert
-    - usetesting
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace
   settings:
     revive:
       # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
@@ -30,7 +32,6 @@ linters:
         - name: context-as-argument
           arguments:
             - allowTypesBefore: '*testing.T,*testing.B,*testing.F'
-        #        - name: context-keys-type
         - name: duplicated-imports
         - name: early-return
         - name: error-naming
@@ -43,12 +44,33 @@ linters:
         - name: useless-break
         - name: var-declaration
         - name: var-naming
+          arguments: [ [ ],[ ],[ skipPackageNameChecks: true ] ]
         - name: waitgroup-by-value
-    usetesting:
-      context-background: true
-      context-todo: true
+    gomoddirectives:
+      replace-local: true
+      replace-allow-list:
+        - github.com/flc1125/go-cron/v4
+      toolchain-forbidden: true
+      go-version-pattern: '^1\.25\.0$'
+    nolintlint:
+      require-specific: true
+    staticcheck:
+      checks:
+        - all
+        - '-QF1012' # https://staticcheck.dev/docs/checks#QF1012
+        - '-ST1000' # https://staticcheck.dev/docs/checks#ST1000
+        - '-ST1020' # https://staticcheck.dev/docs/checks#ST1020
+        - '-ST1021' # https://staticcheck.dev/docs/checks#ST1021
+        - '-ST1022' # https://staticcheck.dev/docs/checks#ST1022
+  exclusions:
+    paths:
+      - .gocache
 
 formatters:
   enable:
     - gofumpt
     - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+      module-path: github.com/flc1125/go-cron/v4

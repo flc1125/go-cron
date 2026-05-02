@@ -1,4 +1,4 @@
-package issue_190 //nolint:revive
+package issue_190 //nolint:staticcheck
 
 import (
 	"context"

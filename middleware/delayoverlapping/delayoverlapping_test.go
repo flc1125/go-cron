@@ -41,12 +41,10 @@ func TestDelayOverlapping(t *testing.T) {
 
 	starting := time.Now()
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 100 {
+		wg.Go(func() {
 			assert.NoError(t, job.Run(ctx))
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -74,12 +72,10 @@ func TestDelayOverlapping_Chain(t *testing.T) {
 
 	starting := time.Now()
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 100 {
+		wg.Go(func() {
 			assert.NoError(t, job.Run(ctx))
-		}()
+		})
 	}
 
 	wg.Wait()

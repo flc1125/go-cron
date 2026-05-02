@@ -1,5 +1,7 @@
 package cron
 
+import "slices"
+
 // Middleware is a function that wraps a Job to provide additional functionality.
 type Middleware func(Job) Job
 
@@ -9,8 +11,8 @@ type Middleware func(Job) Job
 //	Chain(m1, m2, m3) => m1(m2(m3(job)))
 func Chain(m ...Middleware) Middleware {
 	return func(next Job) Job {
-		for i := len(m) - 1; i >= 0; i-- {
-			next = m[i](next)
+		for _, v := range slices.Backward(m) {
+			next = v(next)
 		}
 		return next
 	}

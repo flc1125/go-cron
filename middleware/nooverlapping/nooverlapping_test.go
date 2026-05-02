@@ -38,12 +38,10 @@ func TestNoOverlapping(t *testing.T) {
 		}))
 	)
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 100 {
+		wg.Go(func() {
 			assert.NoError(t, job.Run(ctx))
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -63,12 +61,10 @@ func TestNoOverlapping_Chain(t *testing.T) {
 		}))
 	)
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 100 {
+		wg.Go(func() {
 			assert.NoError(t, job.Run(ctx))
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -144,7 +140,7 @@ func TestNoOverlapping_Cases(t *testing.T) {
 		}))
 
 		wg.Add(10)
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			go func() {
 				defer wg.Done()
 				assert.NoError(t, job.Run(ctx))
@@ -170,7 +166,7 @@ func TestNoOverlapping_Cases(t *testing.T) {
 			return nil
 		}))
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			wg.Add(2)
 			go func() {
 				defer wg.Done()
