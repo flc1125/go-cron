@@ -23,6 +23,7 @@ linters:
     - unconvert
     - unparam
     - unused
+    - usetesting
     - wastedassign
     - whitespace
   settings:
@@ -54,6 +55,9 @@ linters:
       go-version-pattern: '^1\.25\.0$'
     nolintlint:
       require-specific: true
+    usetesting:
+      context-background: true
+      context-todo: true
     staticcheck:
       checks:
         - all
