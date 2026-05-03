@@ -268,11 +268,9 @@ func (c *Cron) run() {
 
 // startJob runs the given job in a new goroutine.
 func (c *Cron) startJob(j Job) {
-	c.jobWaiter.Add(1)
-	go func() {
-		defer c.jobWaiter.Done()
+	c.jobWaiter.Go(func() {
 		j.Run(c.ctx) //nolint:errcheck
-	}()
+	})
 }
 
 // now returns current time in c location

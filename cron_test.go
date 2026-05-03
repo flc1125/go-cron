@@ -15,7 +15,7 @@ import (
 // Many tests schedule a job for every second, and then wait at most a second
 // for it to run.  This amount is just slightly larger than 1 second to
 // compensate for a few milliseconds of runtime.
-const OneSecond = 1*time.Second + 50*time.Millisecond //nolint:revive
+const OneSecond = 1*time.Second + 50*time.Millisecond
 
 // syncWriter is a threadsafe writer.
 //
@@ -549,7 +549,7 @@ func TestJob(t *testing.T) {
 	// Ensure the entries are in the right order.
 	expecteds := []string{"job2", "job4", "job5", "job1", "job3", "job0"}
 
-	var actuals []string // nolint:prealloc
+	var actuals []string //nolint:prealloc
 	for _, entry := range cron.Entries() {
 		actuals = append(actuals, entry.job.(testJob).name)
 	}

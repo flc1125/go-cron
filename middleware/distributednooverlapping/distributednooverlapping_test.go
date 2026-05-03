@@ -69,7 +69,7 @@ func TestMiddleware_Noop(t *testing.T) {
 		WithLogger(logger),
 	)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(2)
 
 		// not mutex job, so no blocking

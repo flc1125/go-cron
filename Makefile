@@ -6,6 +6,7 @@ ROOT_GO_MOD_DIRS := $(filter-out $(TOOLS_MOD_DIR), $(ALL_GO_MOD_DIRS))
 ALL_COVERAGE_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | grep -E -v '^./example|^$(TOOLS_MOD_DIR)' | sort)
 
 GO = go
+GIT = git
 TIMEOUT = 60
 
 # Tools
@@ -106,17 +107,26 @@ go-mod-tidy/%:
 		&& cd $(DIR) \
 		&& $(GO) mod tidy -compat=1.22.0
 
-.PHONY: lint-modules
-lint-modules: go-mod-tidy
-
 .PHONY: lint
-lint: lint-modules golangci-lint
+lint: go-mod-tidy golangci-lint
+lint/%: DIR=$*
+lint/%: go-mod-tidy/% golangci-lint/%
+	@echo "Linting complete"
+
+.PHONY: lint-fix
+lint-fix: go-mod-tidy golangci-lint-fix
+lint-fix/%: DIR=$*
+lint-fix/%: go-mod-tidy/% golangci-lint-fix/%
+	@echo "Lint fix complete"
+
+.PHONY: ci
+ci: lint build check-clean-work-tree
 
 .PHONY: check-clean-work-tree
 check-clean-work-tree:
 	@if ! git diff --quiet; then \
 	  echo; \
-	  echo 'Working tree is not clean, did you forget to run "make precommit"?'; \
+	  echo 'Working tree is not clean, did you forget to run "make ci"?'; \
 	  echo; \
 	  git status; \
 	  exit 1; \
@@ -151,5 +161,9 @@ clean:
 	@rm -rf $(TOOLS)
 	@rm -rf coverage.txt coverage.out coverage.html
 
-# push-tags
+.PHONY: push-tags
 # git tag -l | grep 'v4.7.0$' | xargs -P 4 -I {} git push origin {}
+push-tags:
+	@[ "${TAG}" ] || ( echo ">> env var TAG is not set"; exit 1 )
+	@echo "Pushing tag ${TAG} to origin" \
+		&& $(GIT) tag -l | grep '${TAG}$$' | xargs -P 4 -I {} $(GIT) push origin {}
