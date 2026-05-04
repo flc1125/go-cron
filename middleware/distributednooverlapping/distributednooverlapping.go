@@ -2,6 +2,7 @@ package distributednooverlapping
 
 import (
 	"context"
+	"errors"
 
 	"github.com/flc1125/go-cron/v4"
 )
@@ -55,9 +56,14 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 				o.logger.Info("skip job [%s], because distributed no overlapping", "mutex key", job.GetMutexKey())
 				return nil
 			}
+			if lock == nil {
+				err := errors.New("mutex acquired without lock")
+				o.logger.Error(err, "failed to lock mutex", "mutex key", job.GetMutexKey())
+				return err
+			}
 
 			defer func() {
-				if err := lock.Unlock(ctx); err != nil {
+				if err := lock.Unlock(context.WithoutCancel(ctx)); err != nil {
 					o.logger.Error(err, "failed to unlock mutex", "key", job.GetMutexKey())
 				}
 			}()
