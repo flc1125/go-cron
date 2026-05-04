@@ -297,6 +297,8 @@ func (c *Cron) Stop() context.Context {
 
 // IsRunning returns true if the cron scheduler is started.
 func (c *Cron) IsRunning() bool {
+	c.runningMu.Lock()
+	defer c.runningMu.Unlock()
 	return c.running
 }
 
