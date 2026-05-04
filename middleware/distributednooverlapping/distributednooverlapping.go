@@ -46,7 +46,7 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 				return original.Run(ctx)
 			}
 
-			acquired, err := o.mu.Lock(ctx, job)
+			lock, acquired, err := o.mu.Lock(ctx, job)
 			if err != nil {
 				o.logger.Error(err, "failed to lock mutex", "mutex key", job.GetMutexKey())
 				return err
@@ -57,7 +57,7 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 			}
 
 			defer func() {
-				if err := o.mu.Unlock(ctx, job); err != nil {
+				if err := lock.Unlock(ctx); err != nil {
 					o.logger.Error(err, "failed to unlock mutex", "key", job.GetMutexKey())
 				}
 			}()

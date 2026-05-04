@@ -46,16 +46,12 @@ type testMutex struct {
 
 var _ Mutex = testMutex{}
 
-func (m testMutex) Lock(_ context.Context, job JobWithMutex) (bool, error) {
+func (m testMutex) Lock(_ context.Context, job JobWithMutex) (Lock, bool, error) {
 	if job.GetMutexKey() == "test" {
-		return true, nil
+		return noopLock{}, true, nil
 	}
 
-	return false, nil
-}
-
-func (m testMutex) Unlock(context.Context, JobWithMutex) error {
-	return nil
+	return nil, false, nil
 }
 
 func TestMiddleware_Noop(t *testing.T) {

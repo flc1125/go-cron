@@ -10,10 +10,11 @@ func TestMutex_NoopMutex(t *testing.T) {
 	m := NoopMutex{}
 	ctx := t.Context()
 
-	acquired, err := m.Lock(ctx, nil)
+	lock, acquired, err := m.Lock(ctx, nil)
 	assert.NoError(t, err)
 	assert.True(t, acquired)
+	assert.NotNil(t, lock)
 
-	err = m.Unlock(ctx, nil)
+	err = lock.Unlock(ctx)
 	assert.NoError(t, err)
 }
