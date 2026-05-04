@@ -779,6 +779,42 @@ func TestCron_IsRunning(t *testing.T) {
 	assert.False(t, c.IsRunning())
 }
 
+func TestCron_IsRunningConcurrentStartStop(t *testing.T) {
+	c := New()
+	const iterations = 100
+	const readers = 8
+
+	start := make(chan struct{})
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+
+	for range readers {
+		wg.Go(func() {
+			<-start
+			for {
+				select {
+				case <-done:
+					return
+				default:
+					_ = c.IsRunning()
+				}
+			}
+		})
+	}
+
+	wg.Go(func() {
+		defer close(done)
+		<-start
+		for range iterations {
+			c.Start()
+			c.Stop()
+		}
+	})
+
+	close(start)
+	wg.Wait()
+}
+
 func TestMultiThreadedStartAndStop(*testing.T) {
 	cron := New()
 	go cron.Run()
