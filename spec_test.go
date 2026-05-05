@@ -65,8 +65,13 @@ func TestActivation(t *testing.T) {
 		}
 		actual := sched.Next(getTime(test.time).Add(-1 * time.Second))
 		expected := getTime(test.time)
-		assert.Equal(t, test.expected, expected.Equal(actual),
-			"Fail evaluating %s on %s: (expected) %s != %s (actual)", test.spec, test.time, expected, actual)
+		if test.expected {
+			assert.True(t, expected.Equal(actual),
+				"Fail evaluating %s on %s: (expected) %s != %s (actual)", test.spec, test.time, expected, actual)
+		} else {
+			assert.False(t, expected.Equal(actual),
+				"Fail evaluating %s on %s: (expected) %s == %s (actual)", test.spec, test.time, expected, actual)
+		}
 	}
 }
 

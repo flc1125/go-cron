@@ -119,14 +119,14 @@ func TestAddWhileRunningWithDelay(t *testing.T) {
 	cron.Start()
 	defer cron.Stop()
 	time.Sleep(5 * time.Second)
-	var calls int64
+	var calls atomic.Int64
 	cron.AddFunc("* * * * * *", func(context.Context) error { //nolint:errcheck
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 		return nil
 	})
 
 	<-time.After(OneSecond)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+	assert.Equal(t, int64(1), calls.Load())
 }
 
 // Add a job, remove a job, start cron, expect nothing runs.
@@ -611,9 +611,9 @@ func (*ZeroSchedule) Next(time.Time) time.Time {
 // Tests that job without time does not run
 func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 	cron := newWithSeconds()
-	var calls int64
+	var calls atomic.Int64
 	cron.AddFunc("* * * * * *", func(context.Context) error { //nolint:errcheck
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 		return nil
 	})
 	cron.Schedule(new(ZeroSchedule), JobFunc(func(context.Context) error {
@@ -623,7 +623,7 @@ func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 	cron.Start()
 	defer cron.Stop()
 	<-time.After(OneSecond)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+	assert.Equal(t, int64(1), calls.Load())
 }
 
 func TestStopAndWait(t *testing.T) {
