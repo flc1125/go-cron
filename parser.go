@@ -168,6 +168,10 @@ func timezonePrefix(spec string) string {
 
 func extractTimezone(spec, prefix string) (timezone, schedule string, err error) {
 	rest := spec[len(prefix):]
+	if rest == "" {
+		return "", "", fmt.Errorf("missing timezone in spec: %s", spec)
+	}
+
 	i := strings.IndexFunc(rest, unicode.IsSpace)
 	if i < 0 {
 		return "", "", fmt.Errorf("missing schedule after timezone: %s", spec)

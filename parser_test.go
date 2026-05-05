@@ -125,6 +125,8 @@ func TestParseScheduleErrors(t *testing.T) {
 		{"@unrecognized", "unrecognized descriptor"},
 		{"* * * *", "expected 5 to 6 fields"},
 		{"", "empty spec string"},
+		{"TZ=", "missing timezone"},
+		{"CRON_TZ=", "missing timezone"},
 		{"TZ=UTC", "missing schedule after timezone"},
 		{"CRON_TZ=UTC", "missing schedule after timezone"},
 		{"TZ=UTC ", "missing schedule after timezone"},
