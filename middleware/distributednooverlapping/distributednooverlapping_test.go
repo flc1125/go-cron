@@ -78,6 +78,31 @@ func (l contextCheckingLock) Unlock(ctx context.Context) error {
 	return nil
 }
 
+type spyMutex struct {
+	lock     Lock
+	acquired bool
+	err      error
+
+	lockCalls int
+	job       JobWithMutex
+}
+
+func (m *spyMutex) Lock(_ context.Context, job JobWithMutex) (Lock, bool, error) {
+	m.lockCalls++
+	m.job = job
+	return m.lock, m.acquired, m.err
+}
+
+type spyLock struct {
+	err         error
+	unlockCalls int
+}
+
+func (l *spyLock) Unlock(context.Context) error {
+	l.unlockCalls++
+	return l.err
+}
+
 func TestMiddleware_Noop(t *testing.T) {
 	buf.Reset()
 
@@ -119,6 +144,88 @@ func TestMiddleware_Noop(t *testing.T) {
 	assert.Empty(t, buf.String())
 }
 
+func TestMiddleware_RunBranches(t *testing.T) {
+	lockErr := errors.New("lock failed")
+	jobErr := errors.New("job failed")
+	unlockErr := errors.New("unlock failed")
+
+	tests := []struct {
+		name        string
+		entryJob    cron.Job
+		mutex       *spyMutex
+		jobErr      error
+		wantErr     error
+		wantRun     bool
+		wantLocks   int
+		wantUnlocks int
+	}{
+		{name: "no entry context", mutex: &spyMutex{}, wantRun: true},
+		{name: "entry job without mutex metadata", entryJob: cron.NoopJob{}, mutex: &spyMutex{}, wantRun: true},
+		{
+			name:      "lock error",
+			entryJob:  mutexJob(),
+			mutex:     &spyMutex{err: lockErr},
+			wantErr:   lockErr,
+			wantLocks: 1,
+		},
+		{
+			name:      "lock not acquired",
+			entryJob:  mutexJob(),
+			mutex:     &spyMutex{},
+			wantLocks: 1,
+		},
+		{
+			name:        "successful job unlocks",
+			entryJob:    mutexJob(),
+			mutex:       &spyMutex{lock: &spyLock{}, acquired: true},
+			wantRun:     true,
+			wantLocks:   1,
+			wantUnlocks: 1,
+		},
+		{
+			name:        "unlock error does not override job error",
+			entryJob:    mutexJob(),
+			mutex:       &spyMutex{lock: &spyLock{err: unlockErr}, acquired: true},
+			jobErr:      jobErr,
+			wantErr:     jobErr,
+			wantRun:     true,
+			wantLocks:   1,
+			wantUnlocks: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			middleware := New(tt.mutex, WithLogger(cron.DiscardLogger))
+			ran := false
+			runCtx := ctx
+			if tt.entryJob != nil {
+				entry := entryForJob(tt.entryJob)
+				runCtx = cron.WithEntryContext(runCtx, &entry)
+			}
+
+			err := middleware(cron.JobFunc(func(context.Context) error {
+				ran = true
+				return tt.jobErr
+			})).Run(runCtx)
+
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantRun, ran)
+			assert.Equal(t, tt.wantLocks, tt.mutex.lockCalls)
+			if tt.mutex.job != nil {
+				assert.Equal(t, "test", tt.mutex.job.GetMutexKey())
+			}
+			if tt.mutex.lock != nil {
+				assert.Equal(t, tt.wantUnlocks, tt.mutex.lock.(*spyLock).unlockCalls)
+			}
+		})
+	}
+}
+
 func TestMiddleware_NilAcquiredLock(t *testing.T) {
 	middleware := New(nilLockMutex{}, WithLogger(logger))
 	entry := entryForJob(testJob{
@@ -157,6 +264,14 @@ func TestMiddleware_UnlockWithoutCanceledContext(t *testing.T) {
 	}).Run(cron.WithEntryContext(canceledCtx, &entry))
 	assert.NoError(t, err)
 	assert.NoError(t, <-unlockErr)
+}
+
+func mutexJob() testJob {
+	return testJob{
+		name: "test",
+		ttl:  time.Second,
+		Job:  cron.NoopJob{},
+	}
 }
 
 func entryForJob(job cron.Job) cron.Entry {
