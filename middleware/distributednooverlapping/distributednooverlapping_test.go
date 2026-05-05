@@ -66,7 +66,7 @@ type contextCheckingMutex struct {
 }
 
 func (m contextCheckingMutex) Lock(context.Context, JobWithMutex) (Lock, bool, error) {
-	return contextCheckingLock{unlockErr: m.unlockErr}, true, nil
+	return contextCheckingLock(m), true, nil
 }
 
 type contextCheckingLock struct {

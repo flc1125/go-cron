@@ -53,7 +53,7 @@ func New(mu Mutex, opts ...Option) cron.Middleware {
 				return err
 			}
 			if !acquired {
-				o.logger.Info("skip job [%s], because distributed no overlapping", "mutex key", job.GetMutexKey())
+				o.logger.Info("skip job because distributed no overlapping", "mutex key", job.GetMutexKey())
 				return nil
 			}
 			if lock == nil {

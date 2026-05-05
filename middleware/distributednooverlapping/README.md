@@ -98,6 +98,16 @@ type Lock interface {
 }
 ```
 
+The return values from `Lock` must follow this contract:
+
+- If `acquired` is `true`, `Lock` must be non-nil.
+- If `acquired` is `false`, `Lock` should be nil.
+- If `err` is non-nil, `Lock` should be nil and `acquired` should be false.
+
+The middleware calls `Lock.Unlock(ctx)` only on the returned handle after a
+successful acquisition. Returning `acquired == true` with a nil lock is invalid
+and causes the middleware to return an error.
+
 Binding `Unlock` to the returned lock handle is intentional. Distributed locks
 usually need ownership data, such as a Redis token, to make unlock safe. If a
 job runs longer than the lock TTL, another worker may acquire the same key. A

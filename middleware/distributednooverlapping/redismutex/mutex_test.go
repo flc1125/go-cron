@@ -177,11 +177,13 @@ func TestMutex_UnlockDoesNotDeleteSuccessorLock(t *testing.T) {
 	require.True(t, acquired)
 	require.NotNil(t, staleLock)
 
-	time.Sleep(staleJob.ttl + 25*time.Millisecond)
-
-	successorLock, acquired, err := successor.Lock(ctx, successorJob)
-	require.NoError(t, err)
-	require.True(t, acquired)
+	var successorLock distributednooverlapping.Lock
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var err error
+		successorLock, acquired, err = successor.Lock(ctx, successorJob)
+		assert.NoError(collect, err)
+		assert.True(collect, acquired)
+	}, time.Second, 10*time.Millisecond)
 	require.NotNil(t, successorLock)
 
 	err = staleLock.Unlock(ctx)
