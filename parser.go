@@ -93,14 +93,15 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 	// Extract timezone if present
 	loc := time.Local
 	if prefix := timezonePrefix(spec); prefix != "" {
-		var err error
 		timezone, schedule, err := extractTimezone(spec, prefix)
 		if err != nil {
 			return nil, err
 		}
-		if loc, err = time.LoadLocation(timezone); err != nil {
+		loadedLocation, err := time.LoadLocation(timezone)
+		if err != nil {
 			return nil, fmt.Errorf("provided bad location %s: %v", timezone, err)
 		}
+		loc = loadedLocation
 		spec = schedule
 	}
 

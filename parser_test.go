@@ -127,8 +127,11 @@ func TestParseScheduleErrors(t *testing.T) {
 		{"", "empty spec string"},
 		{"TZ=UTC", "missing schedule after timezone"},
 		{"CRON_TZ=UTC", "missing schedule after timezone"},
+		{"TZ=UTC ", "missing schedule after timezone"},
+		{"CRON_TZ=UTC\t", "missing schedule after timezone"},
 		{"TZ= * * * * *", "missing timezone"},
 		{"CRON_TZ= * * * * *", "missing timezone"},
+		{"TZ=Unknown/Nowhere * * * * *", "provided bad location Unknown/Nowhere"},
 	}
 	for _, c := range tests {
 		actual, err := secondParser.Parse(c.expr)
