@@ -1,10 +1,27 @@
 # Delay Overlapping Middleware
 
-This middleware is used to delay the overlapping of the cron job. 
+This middleware is used to delay overlapping cron job runs.
 
 If the previous job is not finished, the next job will be delayed until the previous job is finished.
 
-If the previous job greater than the reminder time, the logger will print the info message.
+If a job execution takes longer than the reminder time, the logger will print an info message.
+
+## Behavior
+
+`delayoverlapping` serializes overlapping runs of the same job with an in-memory mutex.
+It does not skip overlapping runs. Instead, each overlapping run waits for the previous
+run to finish and then executes.
+
+This means high-frequency schedules combined with long-running jobs can create a backlog
+of waiting goroutines. Use this middleware when, during normal in-process operation,
+each scheduled run should wait and execute sequentially instead of being skipped.
+
+If overlapping runs should be skipped instead of queued, use
+[`nooverlapping`](../nooverlapping).
+
+`WithReminderTime` controls when a job execution duration is logged after the job
+finishes. Time spent waiting for the mutex is not included. It does not set a job
+timeout, cancel waiting runs, or limit the backlog size.
 
 ## Usage
 
