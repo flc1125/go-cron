@@ -1,6 +1,16 @@
-coverage:
+codecov:
   require_ci_to_pass: true
 
+fixes:
+  - "github.com/flc1125/go-cron/v4/::"
+  - "github.com/flc1125/go-cron/middleware/delayoverlapping/v4/::middleware/delayoverlapping/"
+  - "github.com/flc1125/go-cron/middleware/distributednooverlapping/v4/::middleware/distributednooverlapping/"
+  - "github.com/flc1125/go-cron/middleware/distributednooverlapping/redismutex/v4/::middleware/distributednooverlapping/redismutex/"
+  - "github.com/flc1125/go-cron/middleware/nooverlapping/v4/::middleware/nooverlapping/"
+  - "github.com/flc1125/go-cron/middleware/otel/v4/::middleware/otel/"
+  - "github.com/flc1125/go-cron/middleware/recovery/v4/::middleware/recovery/"
+
+coverage:
   status:
     project:
       default:
