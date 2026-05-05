@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // ParseOption Configuration options for creating a parser. Most options specify which
@@ -91,14 +92,16 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 
 	// Extract timezone if present
 	loc := time.Local
-	if strings.HasPrefix(spec, "TZ=") || strings.HasPrefix(spec, "CRON_TZ=") {
+	if prefix := timezonePrefix(spec); prefix != "" {
 		var err error
-		i := strings.Index(spec, " ")
-		eq := strings.Index(spec, "=")
-		if loc, err = time.LoadLocation(spec[eq+1 : i]); err != nil {
-			return nil, fmt.Errorf("provided bad location %s: %v", spec[eq+1:i], err)
+		timezone, schedule, err := extractTimezone(spec, prefix)
+		if err != nil {
+			return nil, err
 		}
-		spec = strings.TrimSpace(spec[i:])
+		if loc, err = time.LoadLocation(timezone); err != nil {
+			return nil, fmt.Errorf("provided bad location %s: %v", timezone, err)
+		}
+		spec = schedule
 	}
 
 	// Handle named schedules (descriptors), if configured
@@ -149,6 +152,37 @@ func (p Parser) Parse(spec string) (Schedule, error) {
 		Dow:      dayofweek,
 		Location: loc,
 	}, nil
+}
+
+func timezonePrefix(spec string) string {
+	switch {
+	case strings.HasPrefix(spec, "CRON_TZ="):
+		return "CRON_TZ="
+	case strings.HasPrefix(spec, "TZ="):
+		return "TZ="
+	default:
+		return ""
+	}
+}
+
+func extractTimezone(spec, prefix string) (timezone, schedule string, err error) {
+	rest := spec[len(prefix):]
+	i := strings.IndexFunc(rest, unicode.IsSpace)
+	if i < 0 {
+		return "", "", fmt.Errorf("missing schedule after timezone: %s", spec)
+	}
+
+	timezone = rest[:i]
+	if timezone == "" {
+		return "", "", fmt.Errorf("missing timezone in spec: %s", spec)
+	}
+
+	schedule = strings.TrimSpace(rest[i:])
+	if schedule == "" {
+		return "", "", fmt.Errorf("missing schedule after timezone: %s", spec)
+	}
+
+	return timezone, schedule, nil
 }
 
 // normalizeFields takes a subset set of the time fields and returns the full set
