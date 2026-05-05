@@ -1,10 +1,10 @@
 package cron
 
 import (
-	"reflect"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var secondParser = NewParser(Second | Minute | Hour | Dom | Month | DowOptional | Descriptor)
@@ -45,15 +45,12 @@ func TestRange(t *testing.T) {
 
 	for _, c := range ranges {
 		actual, err := getRange(c.expr, bounds{c.min, c.max, nil})
-		if len(c.err) != 0 && (err == nil || !strings.Contains(err.Error(), c.err)) {
-			t.Errorf("%s => expected %v, got %v", c.expr, c.err, err)
+		if c.err != "" {
+			assert.ErrorContains(t, err, c.err, c.expr)
+		} else {
+			assert.NoError(t, err, c.expr)
 		}
-		if len(c.err) == 0 && err != nil {
-			t.Errorf("%s => unexpected error %v", c.expr, err)
-		}
-		if actual != c.expected {
-			t.Errorf("%s => expected %d, got %d", c.expr, c.expected, actual)
-		}
+		assert.Equal(t, c.expected, actual, c.expr)
 	}
 }
 
@@ -71,9 +68,7 @@ func TestField(t *testing.T) {
 
 	for _, c := range fields {
 		actual, _ := getField(c.expr, bounds{c.min, c.max, nil})
-		if actual != c.expected {
-			t.Errorf("%s => expected %d, got %d", c.expr, c.expected, actual)
-		}
+		assert.Equal(t, c.expected, actual, c.expr)
 	}
 }
 
@@ -91,10 +86,7 @@ func TestAll(t *testing.T) {
 
 	for _, c := range allBits {
 		actual := all(c.r) // all() adds the starBit, so compensate for that..
-		if c.expected|starBit != actual {
-			t.Errorf("%d-%d/%d => expected %b, got %b",
-				c.r.min, c.r.max, 1, c.expected|starBit, actual)
-		}
+		assert.Equal(t, c.expected|starBit, actual, "%d-%d/%d", c.r.min, c.r.max, 1)
 	}
 }
 
@@ -111,10 +103,7 @@ func TestBits(t *testing.T) {
 
 	for _, c := range bits {
 		actual := getBits(c.min, c.max, c.step)
-		if c.expected != actual {
-			t.Errorf("%d-%d/%d => expected %b, got %b",
-				c.min, c.max, c.step, c.expected, actual)
-		}
+		assert.Equal(t, c.expected, actual, "%d-%d/%d", c.min, c.max, c.step)
 	}
 }
 
@@ -137,12 +126,8 @@ func TestParseScheduleErrors(t *testing.T) {
 	}
 	for _, c := range tests {
 		actual, err := secondParser.Parse(c.expr)
-		if err == nil || !strings.Contains(err.Error(), c.err) {
-			t.Errorf("%s => expected %v, got %v", c.expr, c.err, err)
-		}
-		if actual != nil {
-			t.Errorf("expected nil schedule on error, got %v", actual)
-		}
+		assert.ErrorContains(t, err, c.err, c.expr)
+		assert.Nil(t, actual)
 	}
 }
 
@@ -182,12 +167,8 @@ func TestParseSchedule(t *testing.T) {
 
 	for _, c := range entries {
 		actual, err := c.parser.Parse(c.expr)
-		if err != nil {
-			t.Errorf("%s => unexpected error %v", c.expr, err)
-		}
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("%s => expected %b, got %b", c.expr, c.expected, actual)
-		}
+		assert.NoError(t, err, c.expr)
+		assert.Equal(t, c.expected, actual, c.expr)
 	}
 }
 
@@ -204,12 +185,8 @@ func TestOptionalSecondSchedule(t *testing.T) {
 
 	for _, c := range entries {
 		actual, err := parser.Parse(c.expr)
-		if err != nil {
-			t.Errorf("%s => unexpected error %v", c.expr, err)
-		}
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("%s => expected %b, got %b", c.expr, c.expected, actual)
-		}
+		assert.NoError(t, err, c.expr)
+		assert.Equal(t, c.expected, actual, c.expr)
 	}
 }
 
@@ -267,12 +244,8 @@ func TestNormalizeFields(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual, err := normalizeFields(test.input, test.options)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-			if !reflect.DeepEqual(actual, test.expected) {
-				t.Errorf("expected %v, got %v", test.expected, actual)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, test.expected, actual)
 		})
 	}
 }
@@ -312,12 +285,7 @@ func TestNormalizeFields_Errors(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual, err := normalizeFields(test.input, test.options)
-			if err == nil {
-				t.Errorf("expected an error, got none. results: %v", actual)
-			}
-			if !strings.Contains(err.Error(), test.err) {
-				t.Errorf("expected error %q, got %q", test.err, err.Error())
-			}
+			assert.ErrorContains(t, err, test.err, "results: %v", actual)
 		})
 	}
 }
@@ -348,24 +316,19 @@ func TestStandardSpecSchedule(t *testing.T) {
 
 	for _, c := range entries {
 		actual, err := ParseStandard(c.expr)
-		if len(c.err) != 0 && (err == nil || !strings.Contains(err.Error(), c.err)) {
-			t.Errorf("%s => expected %v, got %v", c.expr, c.err, err)
+		if c.err != "" {
+			assert.ErrorContains(t, err, c.err, c.expr)
+		} else {
+			assert.NoError(t, err, c.expr)
 		}
-		if len(c.err) == 0 && err != nil {
-			t.Errorf("%s => unexpected error %v", c.expr, err)
-		}
-		if !reflect.DeepEqual(actual, c.expected) {
-			t.Errorf("%s => expected %b, got %b", c.expr, c.expected, actual)
-		}
+		assert.Equal(t, c.expected, actual, c.expr)
 	}
 }
 
 func TestNoDescriptorParser(t *testing.T) {
 	parser := NewParser(Minute | Hour)
 	_, err := parser.Parse("@every 1m")
-	if err == nil {
-		t.Error("expected an error, got none")
-	}
+	assert.Error(t, err, "expected an error, got none")
 }
 
 func every5min(loc *time.Location) *SpecSchedule {

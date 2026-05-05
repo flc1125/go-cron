@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestActivation(t *testing.T) {
@@ -58,16 +60,13 @@ func TestActivation(t *testing.T) {
 
 	for _, test := range tests {
 		sched, err := ParseStandard(test.spec)
-		if err != nil {
-			t.Error(err)
+		if !assert.NoError(t, err) {
 			continue
 		}
 		actual := sched.Next(getTime(test.time).Add(-1 * time.Second))
 		expected := getTime(test.time)
-		if test.expected && !expected.Equal(actual) || !test.expected && expected.Equal(actual) {
-			t.Errorf("Fail evaluating %s on %s: (expected) %s != %s (actual)",
-				test.spec, test.time, expected, actual)
-		}
+		assert.Equal(t, test.expected, expected.Equal(actual),
+			"Fail evaluating %s on %s: (expected) %s != %s (actual)", test.spec, test.time, expected, actual)
 	}
 }
 
@@ -187,15 +186,12 @@ func TestNext(t *testing.T) {
 
 	for _, c := range runs {
 		sched, err := secondParser.Parse(c.spec)
-		if err != nil {
-			t.Error(err)
+		if !assert.NoError(t, err) {
 			continue
 		}
 		actual := sched.Next(getTime(c.time))
 		expected := getTime(c.expected)
-		if !actual.Equal(expected) {
-			t.Errorf("%s, \"%s\": (expected) %v != %v (actual)", c.time, c.spec, expected, actual)
-		}
+		assert.True(t, actual.Equal(expected), "%s, %q: (expected) %v != %v (actual)", c.time, c.spec, expected, actual)
 	}
 }
 
@@ -208,9 +204,7 @@ func TestErrors(t *testing.T) {
 	}
 	for _, spec := range invalidSpecs {
 		_, err := ParseStandard(spec)
-		if err == nil {
-			t.Error("expected an error parsing: ", spec)
-		}
+		assert.Error(t, err, "expected an error parsing: %s", spec)
 	}
 }
 
@@ -260,15 +254,12 @@ func TestNextWithTz(t *testing.T) {
 	}
 	for _, c := range runs {
 		sched, err := ParseStandard(c.spec)
-		if err != nil {
-			t.Error(err)
+		if !assert.NoError(t, err) {
 			continue
 		}
 		actual := sched.Next(getTimeTZ(c.time))
 		expected := getTimeTZ(c.expected)
-		if !actual.Equal(expected) {
-			t.Errorf("%s, \"%s\": (expected) %v != %v (actual)", c.time, c.spec, expected, actual)
-		}
+		assert.True(t, actual.Equal(expected), "%s, %q: (expected) %v != %v (actual)", c.time, c.spec, expected, actual)
 	}
 }
 
@@ -294,7 +285,5 @@ func getTimeTZ(value string) time.Time {
 func TestSlash0NoHang(t *testing.T) {
 	schedule := "TZ=America/New_York 15/0 * * * *"
 	_, err := ParseStandard(schedule)
-	if err == nil {
-		t.Error("expected an error on 0 increment")
-	}
+	assert.Error(t, err, "expected an error on 0 increment")
 }

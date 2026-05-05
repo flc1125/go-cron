@@ -3,7 +3,6 @@ package cron
 import (
 	"context"
 	"log"
-	"strings"
 	"testing"
 	"time"
 
@@ -19,34 +18,26 @@ func TestWithContext(t *testing.T) {
 
 func TestWithLocation(t *testing.T) {
 	c := New(WithLocation(time.UTC))
-	if c.location != time.UTC {
-		t.Errorf("expected UTC, got %v", c.location)
-	}
+	assert.Equal(t, time.UTC, c.location)
 }
 
 func TestWithParser(t *testing.T) {
 	parser := NewParser(Dow)
 	c := New(WithParser(parser))
-	if c.parser != parser {
-		t.Error("expected provided parser")
-	}
+	assert.Equal(t, parser, c.parser)
 }
 
 func TestWithVerboseLogger(t *testing.T) {
 	var buf syncWriter
 	logger := log.New(&buf, "", log.LstdFlags)
 	c := New(WithLogger(VerbosePrintfLogger(logger)))
-	if c.logger.(printfLogger).logger != logger {
-		t.Error("expected provided logger")
-	}
+	assert.Same(t, logger, c.logger.(printfLogger).logger)
 
 	c.AddFunc("@every 1s", func(context.Context) error { return nil }) //nolint:errcheck
 	c.Start()
 	time.Sleep(OneSecond)
 	c.Stop()
 	out := buf.String()
-	if !strings.Contains(out, "schedule,") ||
-		!strings.Contains(out, "run,") {
-		t.Error("expected to see some actions, got:", out)
-	}
+	assert.Contains(t, out, "schedule,")
+	assert.Contains(t, out, "run,")
 }

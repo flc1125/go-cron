@@ -2,7 +2,6 @@ package cron
 
 import (
 	"context"
-	"reflect"
 	"sync"
 	"testing"
 
@@ -37,9 +36,7 @@ func TestChain(t *testing.T) {
 		append4 = appendingJob(&nums, 4)
 	)
 	Chain(append1, append2, append3)(append4).Run(t.Context()) //nolint:errcheck
-	if !reflect.DeepEqual(nums, []int{1, 2, 3, 4}) {
-		t.Error("unexpected order of calls:", nums)
-	}
+	assert.Equal(t, []int{1, 2, 3, 4}, nums)
 }
 
 func TestMiddleware_NoopMiddleware(t *testing.T) {

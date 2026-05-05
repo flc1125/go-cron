@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Many tests schedule a job for every second, and then wait at most a second
@@ -45,7 +46,7 @@ func TestNoEntries(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond):
-		t.Fatal("expected cron will be stopped immediately")
+		require.FailNow(t, "expected cron will be stopped immediately")
 	case <-stop(cron):
 	}
 }
@@ -67,7 +68,7 @@ func TestStopCausesJobsToNotRun(t *testing.T) {
 	case <-time.After(OneSecond):
 		// No job ran!
 	case <-wait(wg):
-		t.Fatal("expected stopped cron does not run any job")
+		require.FailNow(t, "expected stopped cron does not run any job")
 	}
 }
 
@@ -87,7 +88,7 @@ func TestAddBeforeRunning(t *testing.T) {
 	// Give cron 2 seconds to run our job (which is always activated).
 	select {
 	case <-time.After(OneSecond):
-		t.Fatal("expected job runs")
+		require.FailNow(t, "expected job runs")
 	case <-wait(wg):
 	}
 }
@@ -107,7 +108,7 @@ func TestAddWhileRunning(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond):
-		t.Fatal("expected job runs")
+		require.FailNow(t, "expected job runs")
 	case <-wait(wg):
 	}
 }
@@ -125,9 +126,7 @@ func TestAddWhileRunningWithDelay(t *testing.T) {
 	})
 
 	<-time.After(OneSecond)
-	if atomic.LoadInt64(&calls) != 1 {
-		t.Errorf("called %d times, expected 1\n", calls)
-	}
+	assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
 }
 
 // Add a job, remove a job, start cron, expect nothing runs.
@@ -148,7 +147,7 @@ func TestRemoveBeforeRunning(t *testing.T) {
 	case <-time.After(OneSecond):
 		// Success, shouldn't run
 	case <-wait(wg):
-		t.FailNow()
+		require.FailNow(t, "expected removed job not to run")
 	}
 }
 
@@ -169,7 +168,7 @@ func TestRemoveWhileRunning(t *testing.T) {
 	select {
 	case <-time.After(OneSecond):
 	case <-wait(wg):
-		t.FailNow()
+		require.FailNow(t, "expected removed job not to run")
 	}
 }
 
@@ -193,7 +192,7 @@ func TestSnapshotEntries(t *testing.T) {
 	// Even though Entries was called, the cron should fire at the 2 second mark.
 	select {
 	case <-time.After(OneSecond):
-		t.Error("expected job runs at 2 second mark")
+		assert.Fail(t, "expected job runs at 2 second mark")
 	case <-wait(wg):
 	}
 }
@@ -213,11 +212,11 @@ func TestMultipleEntries(t *testing.T) {
 		return nil
 	})
 	id1, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
-		t.Fatal()
+		assert.Fail(t, "removed job should not run")
 		return nil
 	})
 	id2, _ := cron.AddFunc("* * * * * ?", func(context.Context) error {
-		t.Fatal()
+		assert.Fail(t, "removed job should not run")
 		return nil
 	})
 	_, _ = cron.AddFunc("0 0 0 31 12 ?", func(context.Context) error { return nil })
@@ -233,7 +232,7 @@ func TestMultipleEntries(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond):
-		t.Error("expected job run in proper order")
+		assert.Fail(t, "expected job run in proper order")
 	case <-wait(wg):
 	}
 }
@@ -256,7 +255,7 @@ func TestRunningJobTwice(t *testing.T) {
 
 	select {
 	case <-time.After(2 * OneSecond):
-		t.Error("expected job fires 2 times")
+		assert.Fail(t, "expected job fires 2 times")
 	case <-wait(wg):
 	}
 }
@@ -284,7 +283,7 @@ func TestRunningMultipleSchedules(t *testing.T) {
 
 	select {
 	case <-time.After(2 * OneSecond):
-		t.Error("expected job fires 2 times")
+		assert.Fail(t, "expected job fires 2 times")
 	case <-wait(wg):
 	}
 }
@@ -392,7 +391,7 @@ func TestLocalTimezone(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond * 2):
-		t.Error("expected job fires 2 times")
+		assert.Fail(t, "expected job fires 2 times")
 	case <-wait(wg):
 	}
 }
@@ -403,10 +402,7 @@ func TestNonLocalTimezone(t *testing.T) {
 	wg.Add(2)
 
 	loc, err := time.LoadLocation("Atlantic/Cape_Verde")
-	if err != nil {
-		fmt.Printf("Failed to load time zone Atlantic/Cape_Verde: %+v", err)
-		t.Fail()
-	}
+	require.NoError(t, err, "Failed to load time zone Atlantic/Cape_Verde")
 
 	now := time.Now().In(loc)
 	// FIX: Issue #205
@@ -429,7 +425,7 @@ func TestNonLocalTimezone(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond * 2):
-		t.Error("expected job fires 2 times")
+		assert.Fail(t, "expected job fires 2 times")
 	case <-wait(wg):
 	}
 }
@@ -455,9 +451,7 @@ func (t testJob) Run(context.Context) error {
 func TestInvalidJobSpec(t *testing.T) {
 	cron := New()
 	_, err := cron.AddJob("this will not parse", nil)
-	if err == nil {
-		t.Errorf("expected an error with invalid spec, got nil")
-	}
+	assert.Error(t, err, "expected an error with invalid spec, got nil")
 }
 
 // Test blocking run method behaves as Start()
@@ -481,9 +475,9 @@ func TestBlockingRun(t *testing.T) {
 
 	select {
 	case <-time.After(OneSecond):
-		t.Error("expected job fires")
+		assert.Fail(t, "expected job fires")
 	case <-unblockChan:
-		t.Error("expected that Run() blocks")
+		assert.Fail(t, "expected that Run() blocks")
 	case <-wait(wg):
 	}
 }
@@ -512,7 +506,7 @@ func TestStartNoop(t *testing.T) {
 	select {
 	case <-time.After(time.Millisecond):
 	case <-tickChan:
-		t.Error("expected job fires exactly twice")
+		assert.Fail(t, "expected job fires exactly twice")
 	}
 }
 
@@ -530,19 +524,15 @@ func TestJob(t *testing.T) {
 	job5 := cron.Schedule(Every(5*time.Minute), testJob{wg, "job5"})
 
 	// Test getting an Entry pre-Start.
-	if actualName := cron.Entry(job2).job.(testJob).name; actualName != "job2" {
-		t.Error("wrong job retrieved:", actualName)
-	}
-	if actualName := cron.Entry(job5).job.(testJob).name; actualName != "job5" {
-		t.Error("wrong job retrieved:", actualName)
-	}
+	assert.Equal(t, "job2", cron.Entry(job2).job.(testJob).name)
+	assert.Equal(t, "job5", cron.Entry(job5).job.(testJob).name)
 
 	cron.Start()
 	defer cron.Stop()
 
 	select {
 	case <-time.After(OneSecond):
-		t.FailNow()
+		require.FailNow(t, "expected job to run")
 	case <-wait(wg):
 	}
 
@@ -554,19 +544,11 @@ func TestJob(t *testing.T) {
 		actuals = append(actuals, entry.job.(testJob).name)
 	}
 
-	for i, expected := range expecteds {
-		if actuals[i] != expected {
-			t.Fatalf("Jobs not in the right order.  (expected) %s != %s (actual)", expecteds, actuals)
-		}
-	}
+	assert.Equal(t, expecteds, actuals, "Jobs not in the right order")
 
 	// Test getting Entries.
-	if actualName := cron.Entry(job2).job.(testJob).name; actualName != "job2" {
-		t.Error("wrong job retrieved:", actualName)
-	}
-	if actualName := cron.Entry(job5).job.(testJob).name; actualName != "job5" {
-		t.Error("wrong job retrieved:", actualName)
-	}
+	assert.Equal(t, "job2", cron.Entry(job2).job.(testJob).name)
+	assert.Equal(t, "job5", cron.Entry(job5).job.(testJob).name)
 }
 
 // Issue #206
@@ -615,7 +597,7 @@ func TestScheduleAfterRemoval(t *testing.T) {
 
 	select {
 	case <-time.After(2 * OneSecond):
-		t.Error("expected job fires 2 times")
+		assert.Fail(t, "expected job fires 2 times")
 	case <-wait(&wg2):
 	}
 }
@@ -635,15 +617,13 @@ func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 		return nil
 	})
 	cron.Schedule(new(ZeroSchedule), JobFunc(func(context.Context) error {
-		t.Error("expected zero task will not run")
+		assert.Fail(t, "expected zero task will not run")
 		return nil
 	}))
 	cron.Start()
 	defer cron.Stop()
 	<-time.After(OneSecond)
-	if atomic.LoadInt64(&calls) != 1 {
-		t.Errorf("called %d times, expected 1\n", calls)
-	}
+	assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
 }
 
 func TestStopAndWait(t *testing.T) {
@@ -654,7 +634,7 @@ func TestStopAndWait(t *testing.T) {
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Millisecond):
-			t.Error("context was not done immediately")
+			assert.Fail(t, "context was not done immediately")
 		}
 	})
 
@@ -667,7 +647,7 @@ func TestStopAndWait(t *testing.T) {
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Millisecond):
-			t.Error("context was not done immediately")
+			assert.Fail(t, "context was not done immediately")
 		}
 	})
 
@@ -683,7 +663,7 @@ func TestStopAndWait(t *testing.T) {
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Millisecond):
-			t.Error("context was not done immediately")
+			assert.Fail(t, "context was not done immediately")
 		}
 	})
 
@@ -703,7 +683,7 @@ func TestStopAndWait(t *testing.T) {
 		// Verify that it is not done for at least 750ms
 		select {
 		case <-ctx.Done():
-			t.Error("context was done too quickly immediately")
+			assert.Fail(t, "context was done too quickly immediately")
 		case <-time.After(750 * time.Millisecond):
 			// expected, because the job sleeping for 1 second is still running
 		}
@@ -713,7 +693,7 @@ func TestStopAndWait(t *testing.T) {
 		case <-ctx.Done():
 			// expected
 		case <-time.After(1500 * time.Millisecond):
-			t.Error("context not done after job should have completed")
+			assert.Fail(t, "context not done after job should have completed")
 		}
 	})
 
@@ -733,9 +713,9 @@ func TestStopAndWait(t *testing.T) {
 		// Verify that it is not done for at least 1500ms
 		select {
 		case <-ctx.Done():
-			t.Error("context was done too quickly immediately")
+			assert.Fail(t, "context was done too quickly immediately")
 		case <-ctx2.Done():
-			t.Error("context2 was done too quickly immediately")
+			assert.Fail(t, "context2 was done too quickly immediately")
 		case <-time.After(1500 * time.Millisecond):
 			// expected, because the job sleeping for 2 seconds is still running
 		}
@@ -745,7 +725,7 @@ func TestStopAndWait(t *testing.T) {
 		case <-ctx.Done():
 			// expected
 		case <-time.After(time.Second):
-			t.Error("context not done after job should have completed")
+			assert.Fail(t, "context not done after job should have completed")
 		}
 
 		// Verify that ctx2 is also done.
@@ -753,7 +733,7 @@ func TestStopAndWait(t *testing.T) {
 		case <-ctx2.Done():
 			// expected
 		case <-time.After(time.Millisecond):
-			t.Error("context2 not done even though context1 is")
+			assert.Fail(t, "context2 not done even though context1 is")
 		}
 
 		// Verify that a new context retrieved from stop is immediately done.
@@ -762,7 +742,7 @@ func TestStopAndWait(t *testing.T) {
 		case <-ctx3.Done():
 			// expected
 		case <-time.After(time.Millisecond):
-			t.Error("context not done even when cron Stop is completed")
+			assert.Fail(t, "context not done even when cron Stop is completed")
 		}
 	})
 }
