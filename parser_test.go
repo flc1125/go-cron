@@ -125,6 +125,15 @@ func TestParseScheduleErrors(t *testing.T) {
 		{"@unrecognized", "unrecognized descriptor"},
 		{"* * * *", "expected 5 to 6 fields"},
 		{"", "empty spec string"},
+		{"TZ=", "missing timezone"},
+		{"CRON_TZ=", "missing timezone"},
+		{"TZ=UTC", "missing schedule after timezone"},
+		{"CRON_TZ=UTC", "missing schedule after timezone"},
+		{"TZ=UTC ", "missing schedule after timezone"},
+		{"CRON_TZ=UTC\t", "missing schedule after timezone"},
+		{"TZ= * * * * *", "missing timezone"},
+		{"CRON_TZ= * * * * *", "missing timezone"},
+		{"TZ=Unknown/Nowhere * * * * *", "provided bad location Unknown/Nowhere"},
 	}
 	for _, c := range tests {
 		actual, err := secondParser.Parse(c.expr)
@@ -149,6 +158,7 @@ func TestParseSchedule(t *testing.T) {
 		{secondParser, "CRON_TZ=UTC  0 5 * * * *", every5min(time.UTC)},
 		{standardParser, "CRON_TZ=UTC  5 * * * *", every5min(time.UTC)},
 		{secondParser, "CRON_TZ=Asia/Tokyo 0 5 * * * *", every5min(tokyo)},
+		{secondParser, "CRON_TZ=UTC\t0 5 * * * *", every5min(time.UTC)},
 		{secondParser, "@every 5m", ConstantDelaySchedule{5 * time.Minute}},
 		{secondParser, "@midnight", midnight(time.Local)},
 		{secondParser, "TZ=UTC  @midnight", midnight(time.UTC)},
