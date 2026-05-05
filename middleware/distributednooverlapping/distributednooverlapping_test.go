@@ -3,6 +3,7 @@ package distributednooverlapping
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log"
 	"sync"
 	"testing"
@@ -46,15 +47,34 @@ type testMutex struct {
 
 var _ Mutex = testMutex{}
 
-func (m testMutex) Lock(_ context.Context, job JobWithMutex) (bool, error) {
+func (m testMutex) Lock(_ context.Context, job JobWithMutex) (Lock, bool, error) {
 	if job.GetMutexKey() == "test" {
-		return true, nil
+		return noopLock{}, true, nil
 	}
 
-	return false, nil
+	return nil, false, nil
 }
 
-func (m testMutex) Unlock(context.Context, JobWithMutex) error {
+type nilLockMutex struct{}
+
+func (nilLockMutex) Lock(context.Context, JobWithMutex) (Lock, bool, error) {
+	return nil, true, nil
+}
+
+type contextCheckingMutex struct {
+	unlockErr chan<- error
+}
+
+func (m contextCheckingMutex) Lock(context.Context, JobWithMutex) (Lock, bool, error) {
+	return contextCheckingLock(m), true, nil
+}
+
+type contextCheckingLock struct {
+	unlockErr chan<- error
+}
+
+func (l contextCheckingLock) Unlock(ctx context.Context) error {
+	l.unlockErr <- ctx.Err()
 	return nil
 }
 
@@ -97,6 +117,52 @@ func TestMiddleware_Noop(t *testing.T) {
 	wg.Wait()
 	assert.Len(t, ch, 200)
 	assert.Empty(t, buf.String())
+}
+
+func TestMiddleware_NilAcquiredLock(t *testing.T) {
+	middleware := New(nilLockMutex{}, WithLogger(logger))
+	entry := entryForJob(testJob{
+		name: "test",
+		ttl:  time.Second,
+		Job: cron.JobFunc(func(context.Context) error {
+			return errors.New("job should not run")
+		}),
+	})
+
+	err := middleware(testJob{
+		name: "test",
+		ttl:  time.Second,
+		Job:  cron.NoopJob{},
+	}).Run(cron.WithEntryContext(ctx, &entry))
+	assert.EqualError(t, err, "mutex acquired without lock")
+}
+
+func TestMiddleware_UnlockWithoutCanceledContext(t *testing.T) {
+	unlockErr := make(chan error, 1)
+	middleware := New(contextCheckingMutex{unlockErr: unlockErr}, WithLogger(logger))
+	entry := entryForJob(testJob{
+		name: "test",
+		ttl:  time.Second,
+		Job:  cron.NoopJob{},
+	})
+	canceledCtx, cancel := context.WithCancel(ctx)
+
+	err := middleware(testJob{
+		name: "test",
+		ttl:  time.Second,
+		Job: cron.JobFunc(func(context.Context) error {
+			cancel()
+			return nil
+		}),
+	}).Run(cron.WithEntryContext(canceledCtx, &entry))
+	assert.NoError(t, err)
+	assert.NoError(t, <-unlockErr)
+}
+
+func entryForJob(job cron.Job) cron.Entry {
+	c := cron.New()
+	id := c.Schedule(cron.Every(time.Second), job)
+	return c.Entry(id)
 }
 
 // func TestMiddleware_Mutex(t *testing.T) {

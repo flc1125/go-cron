@@ -9,6 +9,7 @@ import (
 	"github.com/flc1125/go-cron/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var ctx = context.Background()
@@ -59,25 +60,29 @@ func TestMutex(t *testing.T) {
 			ttl:  time.Second,
 		}
 
-		acquired, err := mutex.Lock(ctx, job)
+		lock, acquired, err := mutex.Lock(ctx, job)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
+		assert.NotNil(t, lock)
 
-		acquired, err = mutex.Lock(ctx, job)
+		_, acquired, err = mutex.Lock(ctx, job)
 		assert.NoError(t, err)
 		assert.False(t, acquired)
 
-		time.Sleep(time.Second + time.Millisecond*10)
+		// unlock
+		err = lock.Unlock(ctx)
+		assert.NoError(t, err)
 
-		acquired, err = mutex.Lock(ctx, job)
+		lock, acquired, err = mutex.Lock(ctx, job)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
+		assert.NotNil(t, lock)
 
 		// unlock
-		err = mutex.Unlock(ctx, job)
+		err = lock.Unlock(ctx)
 		assert.NoError(t, err)
 
-		acquired, err = mutex.Lock(ctx, job)
+		_, acquired, err = mutex.Lock(ctx, job)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
 	})
@@ -102,43 +107,98 @@ func TestMutex(t *testing.T) {
 		}
 
 		// lock job1
-		acquired, err := mutex.Lock(ctx, job1)
+		lock1, acquired, err := mutex.Lock(ctx, job1)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
+		assert.NotNil(t, lock1)
 
 		// lock job2
-		acquired, err = mutex.Lock(ctx, job2)
+		lock2, acquired, err := mutex.Lock(ctx, job2)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
+		assert.NotNil(t, lock2)
 
-		acquired, err = mutex.Lock(ctx, job1)
+		_, acquired, err = mutex.Lock(ctx, job1)
 		assert.NoError(t, err)
 		assert.False(t, acquired)
 
-		acquired, err = mutex.Lock(ctx, job2)
+		_, acquired, err = mutex.Lock(ctx, job2)
 		assert.NoError(t, err)
 		assert.False(t, acquired)
 
 		// unlock job1
-		err = mutex.Unlock(ctx, job1)
+		err = lock1.Unlock(ctx)
 		assert.NoError(t, err)
 
-		acquired, err = mutex.Lock(ctx, job1)
+		lock1, acquired, err = mutex.Lock(ctx, job1)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
+		assert.NotNil(t, lock1)
+
+		// unlock job1
+		err = lock1.Unlock(ctx)
+		assert.NoError(t, err)
 
 		// unlock job2
-		err = mutex.Unlock(ctx, job1)
+		err = lock2.Unlock(ctx)
 		assert.NoError(t, err)
 
-		// unlock
-		err = mutex.Unlock(ctx, job2)
-		assert.NoError(t, err)
-
-		acquired, err = mutex.Lock(ctx, job2)
+		_, acquired, err = mutex.Lock(ctx, job2)
 		assert.NoError(t, err)
 		assert.True(t, acquired)
 	})
+}
+
+func TestMutex_UnlockDoesNotDeleteSuccessorLock(t *testing.T) {
+	client := createRedis(t)
+	staleOwner := New(client, WithPrefix("test:cron"))
+	successor := New(client, WithPrefix("test:cron"))
+	contender := New(client, WithPrefix("test:cron"))
+
+	staleJob := testJob{
+		t: t,
+		job: func(context.Context) error {
+			return nil
+		},
+		name: "job:stale-owner",
+		ttl:  50 * time.Millisecond,
+	}
+	successorJob := testJob{
+		t: t,
+		job: func(context.Context) error {
+			return nil
+		},
+		name: staleJob.name,
+		ttl:  time.Second,
+	}
+
+	staleLock, acquired, err := staleOwner.Lock(ctx, staleJob)
+	require.NoError(t, err)
+	require.True(t, acquired)
+	require.NotNil(t, staleLock)
+
+	var successorLock distributednooverlapping.Lock
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var err error
+		successorLock, acquired, err = successor.Lock(ctx, successorJob)
+		assert.NoError(collect, err)
+		assert.True(collect, acquired)
+	}, time.Second, 10*time.Millisecond)
+	require.NotNil(t, successorLock)
+
+	err = staleLock.Unlock(ctx)
+	require.NoError(t, err)
+
+	_, acquired, err = contender.Lock(ctx, successorJob)
+	require.NoError(t, err)
+	assert.False(t, acquired, "stale unlock must not remove the successor lock")
+
+	err = successorLock.Unlock(ctx)
+	require.NoError(t, err)
+
+	_, acquired, err = contender.Lock(ctx, successorJob)
+	require.NoError(t, err)
+	assert.True(t, acquired)
 }
 
 func TestMutex_Prefix(t *testing.T) {

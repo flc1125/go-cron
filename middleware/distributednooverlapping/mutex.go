@@ -9,12 +9,15 @@ import (
 
 type Mutex interface {
 	// Lock tries to acquire the mutex for the job.
+	// If the mutex is acquired, it returns a lock that must be unlocked.
 	// If the mutex is acquired, it returns true.
 	// If the mutex is not acquired, it returns false.
-	Lock(ctx context.Context, job JobWithMutex) (bool, error)
+	Lock(ctx context.Context, job JobWithMutex) (Lock, bool, error)
+}
 
-	// Unlock releases the mutex for the job.
-	Unlock(ctx context.Context, job JobWithMutex) error
+type Lock interface {
+	// Unlock releases the acquired lock.
+	Unlock(ctx context.Context) error
 }
 
 type JobWithMutex interface {
@@ -30,10 +33,12 @@ type JobWithMutex interface {
 
 type NoopMutex struct{}
 
-func (m NoopMutex) Lock(context.Context, JobWithMutex) (bool, error) {
-	return true, nil
+func (m NoopMutex) Lock(context.Context, JobWithMutex) (Lock, bool, error) {
+	return noopLock{}, true, nil
 }
 
-func (m NoopMutex) Unlock(context.Context, JobWithMutex) error {
+type noopLock struct{}
+
+func (m noopLock) Unlock(context.Context) error {
 	return nil
 }
