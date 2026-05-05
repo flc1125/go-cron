@@ -101,7 +101,8 @@ func New(opts ...Option) cron.Middleware {
 			}(time.Now())
 
 			// trace
-			ctx, span := tracer.Start(ctx, "cron "+job.Name(),
+			ctx, span := tracer.Start(
+				ctx, "cron "+job.Name(),
 				trace.WithSpanKind(trace.SpanKindInternal),
 			)
 			defer span.End()

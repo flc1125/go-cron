@@ -45,7 +45,8 @@ func (pl printfLogger) Info(msg string, keysAndValues ...any) {
 		keysAndValues = formatTimes(keysAndValues)
 		pl.logger.Printf(
 			formatString(len(keysAndValues)),
-			append([]any{msg}, keysAndValues...)...)
+			append([]any{msg}, keysAndValues...)...,
+		)
 	}
 }
 
@@ -53,7 +54,8 @@ func (pl printfLogger) Error(err error, msg string, keysAndValues ...any) {
 	keysAndValues = formatTimes(keysAndValues)
 	pl.logger.Printf(
 		formatString(len(keysAndValues)+2),
-		append([]any{msg, "error", err}, keysAndValues...)...)
+		append([]any{msg, "error", err}, keysAndValues...)...,
+	)
 }
 
 // formatString returns a logfmt-like format string for the number of
