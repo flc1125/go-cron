@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/flc1125/go-cron/v4"
 	"github.com/stretchr/testify/assert"
@@ -92,13 +93,30 @@ func TestTracing(t *testing.T) {
 	}
 }
 
-func TestTracing_NotJobWithName(t *testing.T) {
-	defer imsb.Reset()
+func TestTracing_PassThroughWithoutNamedEntryJob(t *testing.T) {
+	tests := []struct {
+		name     string
+		entryJob cron.Job
+	}{
+		{name: "no entry context"},
+		{name: "entry job without name", entryJob: cron.NoopJob{}},
+	}
 
-	require.NoError(t, middleware(cron.JobFunc(func(context.Context) error {
-		return nil
-	})).Run(ctx))
-	require.Len(t, imsb.GetSpans(), 0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer imsb.Reset()
+			runCtx := ctx
+			if tt.entryJob != nil {
+				entry := entryForJob(tt.entryJob)
+				runCtx = cron.WithEntryContext(ctx, &entry)
+			}
+
+			require.NoError(t, middleware(cron.JobFunc(func(context.Context) error {
+				return nil
+			})).Run(runCtx))
+			require.Len(t, imsb.GetSpans(), 0)
+		})
+	}
 }
 
 func TestMetrics(t *testing.T) {
@@ -189,4 +207,10 @@ func TestMetrics(t *testing.T) {
 			},
 		},
 	}, rm.ScopeMetrics[0].Metrics[2], metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreValue())
+}
+
+func entryForJob(job cron.Job) cron.Entry {
+	c := cron.New()
+	id := c.Schedule(cron.Every(time.Second), job)
+	return c.Entry(id)
 }
