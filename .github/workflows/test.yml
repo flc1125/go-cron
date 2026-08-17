@@ -39,6 +39,22 @@ jobs:
       - run: go version
 
       - name: Run tests
+        run: make test
+
+      - name: Verify validation failures propagate
+        if: matrix.go-version == '1.26.x'
+        run: |
+          if make GO=false test; then
+            echo "make test unexpectedly succeeded"
+            exit 1
+          fi
+          if make GO=false build; then
+            echo "make build unexpectedly succeeded"
+            exit 1
+          fi
+
+      - name: Generate coverage
+        if: matrix.go-version == '1.26.x' && matrix.platform == 'ubuntu-latest'
         run: make test-coverage
 
       - name: Upload coverage to Codecov

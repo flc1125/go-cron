@@ -51,9 +51,11 @@ build-tests/%: DIR=$*
 build-tests/%:
 	@echo "$(GO) build tests $(DIR)/..." \
 		&& cd $(DIR) \
-		&& $(GO) list ./... \
-		| grep -v third_party \
-		| xargs $(GO) test -vet=off -run xxxxxMatchNothingxxxxx >/dev/null
+		&& packages="$$( $(GO) list ./...)" \
+		&& packages="$$(printf '%s\n' "$$packages" | grep -v third_party || true)" \
+		&& if [ -n "$$packages" ]; then \
+			$(GO) test -vet=off -run xxxxxMatchNothingxxxxx $$packages >/dev/null; \
+		fi
 
 # Tests
 
@@ -70,24 +72,23 @@ test/%: DIR=$*
 test/%:
 	@echo "$(GO) test -timeout $(TIMEOUT)s $(ARGS) $(DIR)/..." \
 		&& cd $(DIR) \
-		&& $(GO) list ./... \
-		| xargs $(GO) test -timeout $(TIMEOUT)s $(ARGS)
+		&& $(GO) test -timeout $(TIMEOUT)s $(ARGS) ./...
 
 
 COVERAGE_MODE    = atomic
 COVERAGE_PROFILE = coverage.out
 .PHONY: test-coverage
 test-coverage: $(GOCOVMERGE)
-	@set -e; \
-	printf "" > coverage.txt; \
+	@set -eu; \
+	profiles=""; \
 	for dir in $(ALL_COVERAGE_MOD_DIRS); do \
-	  echo "$(GO) test -v -race -coverpkg=github.com/flc1125/go-cron/... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" $${dir}/..."; \
+	  echo "cd $${dir} && $(GO) test -timeout $(TIMEOUT)s -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile=$(COVERAGE_PROFILE) ./..."; \
 	  (cd "$${dir}" && \
-	    $(GO) list ./... \
-	    | xargs $(GO) test -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile="$(COVERAGE_PROFILE)" && \
-	  $(GO) tool cover -html=coverage.out -o coverage.html); \
+	    $(GO) test -timeout $(TIMEOUT)s -coverpkg=./... -covermode=$(COVERAGE_MODE) -coverprofile=$(COVERAGE_PROFILE) ./... && \
+	    $(GO) tool cover -html=$(COVERAGE_PROFILE) -o coverage.html); \
+	  profiles="$$profiles $${dir}/$(COVERAGE_PROFILE)"; \
 	done; \
-	$(GOCOVMERGE) $$(find . -name coverage.out) > coverage.txt
+	$(GOCOVMERGE) $$profiles > coverage.txt
 
 .PHONY: golangci-lint golangci-lint-fix
 golangci-lint-fix: ARGS=--fix
