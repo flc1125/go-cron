@@ -39,7 +39,7 @@ jobs:
       - run: go version
 
       - name: Run tests
-        run: make test
+        run: make test-race
 
       - name: Verify validation failures propagate
         if: matrix.go-version == '1.26.x'
