@@ -1,6 +1,7 @@
 # OTel Middleware
 
-The `otel` is a middleware for that provides observability with OpenTelemetry.
+The `otel` middleware provides OpenTelemetry traces and metrics for cron Job
+executions.
 
 > [!WARNING]  
 > **Unstable Semantic Conventions**
@@ -8,6 +9,25 @@ The `otel` is a middleware for that provides observability with OpenTelemetry.
 > OpenTelemetry has not yet defined semantic conventions that align with cron job scheduling and execution. As a result, all metrics, attributes, and trace semantics provided by this middleware are custom-defined and subject to change.
 >
 > These conventions will remain unstable until OTel releases official semantic conventions for cron-like workloads. When that happens, this middleware will be updated to adopt the official conventions, which **will be a breaking change** that may require updates to your dashboards, queries, and alerting rules.
+
+## Behavior
+
+Scheduler Jobs are instrumented only when the registered Job implements
+`JobWithName`. Calls without an Entry context and Jobs without a name run without
+cron trace or metric data.
+
+When an instrumented Job returns an error, the middleware records it on the span
+and metrics, then returns the error unchanged. The core scheduler does not log or
+otherwise handle that returned error, so applications still need Job-level or
+additional middleware error handling.
+
+The `cron.job.prev.time` and `cron.job.next.time` span attributes come from the
+stable Entry snapshot for that execution. They represent the current scheduled
+activation time and the next scheduled activation time, respectively.
+
+Middleware order is outermost to innermost. To recover panics raised by OTel or
+the Job, register recovery before OTel, for example
+`cron.WithMiddleware(recovery.New(), otel.New())`.
 
 ## Usage
 
@@ -56,9 +76,8 @@ func main() {
 	_, _ = c.AddJob("* * * * * *", &basicJob{})
 
 	c.Start()
-	defer c.Stop()
-
 	time.Sleep(10 * time.Second)
+	<-c.Stop().Done()
 	fmt.Println("spans:", len(imsb.GetSpans()))
 }
 ```

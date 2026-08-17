@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-// EntryID identifies an entry within a Cron instance
+// EntryID identifies an [Entry] within a [Cron] instance.
 type EntryID int
 
-// Entry consists of a schedule and the func to execute on that schedule.
+// Entry consists of a [Schedule] and the [Job] to execute on that schedule.
 type Entry struct {
 	// id is the cron-assigned id of this entry, which may be used to look up a
 	// snapshot or remove it.
@@ -36,8 +36,10 @@ type Entry struct {
 	middlewares []Middleware
 }
 
+// EntryOption configures an [Entry].
 type EntryOption func(*Entry)
 
+// WithEntryMiddlewares configures the [Middleware] applied to an [Entry].
 func WithEntryMiddlewares(middlewares ...Middleware) EntryOption {
 	return func(e *Entry) {
 		e.middlewares = middlewares
@@ -74,6 +76,7 @@ func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entr
 	return entry
 }
 
+// ID returns the [EntryID] assigned by [Cron].
 func (e *Entry) ID() EntryID {
 	return e.id
 }
@@ -81,22 +84,27 @@ func (e *Entry) ID() EntryID {
 // Valid returns true if this is not the zero entry.
 func (e *Entry) Valid() bool { return e.id != 0 }
 
+// Schedule returns the [Schedule] associated with the entry.
 func (e *Entry) Schedule() Schedule {
 	return e.schedule
 }
 
+// Next returns the next scheduled activation time.
 func (e *Entry) Next() time.Time {
 	return e.next
 }
 
+// Prev returns the previous scheduled activation time.
 func (e *Entry) Prev() time.Time {
 	return e.prev
 }
 
+// WrappedJob returns the [Job] after its [Middleware] has been applied.
 func (e *Entry) WrappedJob() Job {
 	return e.wrappedJob
 }
 
+// Job returns the originally registered [Job].
 func (e *Entry) Job() Job {
 	return e.job
 }
@@ -127,15 +135,18 @@ func executionEntryFromContext(ctx context.Context, registered *Entry) (*Entry, 
 	return value.snapshot, true
 }
 
-// WithEntryContext returns a new context with the given Entry.
+// WithEntryContext returns a new [context.Context] containing the given [Entry].
 func WithEntryContext(ctx context.Context, entry *Entry) context.Context {
 	return context.WithValue(ctx, entryContextKey{}, entry)
 }
 
-// EntryFromContext returns the Entry associated with the current job execution.
-// Jobs started by Cron receive a stable snapshot for that execution. Direct
-// Entry.WrappedJob calls without a scheduler execution context receive the
-// registered Entry.
+// EntryFromContext returns the [Entry] associated with the current job
+// execution. Jobs started by [Cron] receive a stable snapshot for that
+// execution. Direct [Entry.WrappedJob] calls without a scheduler execution
+// context receive the registered [Entry]. In a scheduler execution snapshot,
+// [Entry.Prev] is the scheduled activation time for that execution and
+// [Entry.Next] is the next scheduled activation time already calculated by the
+// scheduler.
 func EntryFromContext(ctx context.Context) (*Entry, bool) {
 	entry, ok := ctx.Value(entryContextKey{}).(*Entry)
 	return entry, ok
