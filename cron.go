@@ -15,17 +15,21 @@ type Cron struct {
 	entries       []*Entry
 	middlewares   []Middleware
 	middlewaresMu sync.Mutex
-	stop          chan struct{}
 	add           chan *Entry
 	remove        chan EntryID
 	snapshot      chan chan []Entry
-	running       bool
-	logger        Logger
 	runningMu     sync.Mutex
+	running       bool
+	runState      *runState
+	logger        Logger
 	location      *time.Location
 	parser        ScheduleParser
 	nextID        EntryID
-	jobWaiter     sync.WaitGroup
+}
+
+type runState struct {
+	stop chan struct{}
+	jobs sync.WaitGroup
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -81,7 +85,6 @@ func New(opts ...Option) *Cron {
 		ctx:       context.Background(),
 		entries:   nil,
 		add:       make(chan *Entry),
-		stop:      make(chan struct{}),
 		snapshot:  make(chan chan []Entry),
 		remove:    make(chan EntryID),
 		running:   false,
@@ -187,31 +190,39 @@ func (c *Cron) Remove(id EntryID) {
 }
 
 // Start the cron scheduler in its own goroutine, or no-op if already started.
+// Jobs started by each successful call are tracked independently from jobs
+// left running by earlier calls.
 func (c *Cron) Start() {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	if c.running {
 		return
 	}
+	state := newRunState()
+	c.runState = state
 	c.running = true
-	go c.run()
+	go c.run(state)
 }
 
-// Run the cron scheduler, or no-op if already running.
+// Run the cron scheduler, or no-op if already running. Jobs started by each
+// successful call are tracked independently from jobs left running by earlier
+// calls.
 func (c *Cron) Run() {
 	c.runningMu.Lock()
 	if c.running {
 		c.runningMu.Unlock()
 		return
 	}
+	state := newRunState()
+	c.runState = state
 	c.running = true
 	c.runningMu.Unlock()
-	c.run()
+	c.run(state)
 }
 
 // run the scheduler.. this is private just due to the need to synchronize
 // access to the 'running' state variable.
-func (c *Cron) run() {
+func (c *Cron) run(state *runState) {
 	c.logger.Info("start")
 
 	// Figure out the next activation times for each entry.
@@ -249,7 +260,7 @@ func (c *Cron) run() {
 					e.next = e.schedule.Next(now)
 					executionEntry := *e
 					ctx := withExecutionEntryContext(c.ctx, e, &executionEntry)
-					c.startJob(ctx, e.WrappedJob())
+					state.startJob(ctx, e.WrappedJob())
 					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.next)
 				}
 
@@ -264,7 +275,7 @@ func (c *Cron) run() {
 				replyChan <- c.entrySnapshot()
 				continue
 
-			case <-c.stop:
+			case <-state.stop:
 				timer.Stop()
 				c.logger.Info("stop")
 				return
@@ -281,9 +292,13 @@ func (c *Cron) run() {
 	}
 }
 
+func newRunState() *runState {
+	return &runState{stop: make(chan struct{})}
+}
+
 // startJob runs the given job with the given context in a new goroutine.
-func (c *Cron) startJob(ctx context.Context, j Job) {
-	c.jobWaiter.Go(func() {
+func (s *runState) startJob(ctx context.Context, j Job) {
+	s.jobs.Go(func() {
 		j.Run(ctx) //nolint:errcheck
 	})
 }
@@ -293,18 +308,25 @@ func (c *Cron) now() time.Time {
 	return time.Now().In(c.location)
 }
 
-// Stop stops the cron scheduler if it is running; otherwise it does nothing.
-// A context is returned so the caller can wait for running jobs to complete.
+// Stop stops the cron scheduler if it is running. A context is returned so the
+// caller can wait for jobs started by that run to complete. If the scheduler is
+// not running, the context waits for jobs from the most recent run. It does not
+// wait for jobs started by later calls to Start or Run.
 func (c *Cron) Stop() context.Context {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	if c.running {
-		c.stop <- struct{}{}
+		c.runState.stop <- struct{}{}
 		c.running = false
 	}
+	state := c.runState
 	ctx, cancel := context.WithCancel(context.Background())
+	if state == nil {
+		cancel()
+		return ctx
+	}
 	go func() {
-		c.jobWaiter.Wait()
+		state.jobs.Wait()
 		cancel()
 	}()
 	return ctx

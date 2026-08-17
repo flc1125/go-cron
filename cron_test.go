@@ -536,11 +536,14 @@ func TestNonLocalTimezone(t *testing.T) {
 	}
 }
 
-// Test that calling stop before start silently returns without
-// blocking the stop channel.
-func TestStopWithoutStart(*testing.T) {
+// Test that calling stop before start returns an already-completed context.
+func TestStopWithoutStart(t *testing.T) {
 	cron := New()
-	cron.Stop()
+	select {
+	case <-cron.Stop().Done():
+	case <-time.After(time.Second):
+		t.Fatal("Stop context did not complete")
+	}
 }
 
 type testJob struct {
@@ -851,6 +854,130 @@ func TestStopAndWait(t *testing.T) {
 			assert.Fail(t, "context not done even when cron Stop is completed")
 		}
 	})
+}
+
+// oncePerRunSchedule fires once each time the scheduler initializes its entries.
+type oncePerRunSchedule struct {
+	calls atomic.Int64
+}
+
+func (s *oncePerRunSchedule) Next(now time.Time) time.Time {
+	if s.calls.Add(1)%2 == 1 {
+		return now
+	}
+	return time.Time{}
+}
+
+func TestCron_RestartWaitsForJobsByRun(t *testing.T) {
+	startMethods := []struct {
+		name  string
+		start func(*Cron)
+	}{
+		{name: "Start", start: func(cron *Cron) { cron.Start() }},
+		{name: "Run", start: func(cron *Cron) { go cron.Run() }},
+	}
+
+	for _, method := range startMethods {
+		t.Run(method.name, func(t *testing.T) {
+			testCronRestartWaitsForJobsByRun(t, method.start)
+		})
+	}
+}
+
+func testCronRestartWaitsForJobsByRun(t *testing.T, start func(*Cron)) {
+	tests := []struct {
+		name          string
+		firstFinished int64
+	}{
+		{name: "old run finishes first", firstFinished: 1},
+		{name: "new run finishes first", firstFinished: 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			started := make(chan int64, 2)
+			releases := []chan struct{}{
+				make(chan struct{}, 1),
+				make(chan struct{}, 1),
+			}
+			var runs atomic.Int64
+
+			cron := New()
+			cron.Schedule(&oncePerRunSchedule{}, JobFunc(func(context.Context) error {
+				run := runs.Add(1)
+				started <- run
+				if run <= int64(len(releases)) {
+					<-releases[run-1]
+				}
+				return nil
+			}))
+			t.Cleanup(func() {
+				for _, release := range releases {
+					select {
+					case release <- struct{}{}:
+					default:
+					}
+				}
+				cron.Stop()
+			})
+
+			waitForRun := func(want int64) {
+				t.Helper()
+				select {
+				case got := <-started:
+					require.Equal(t, want, got)
+				case <-time.After(time.Second):
+					t.Fatalf("job for run %d did not start", want)
+				}
+			}
+			waitForDone := func(ctx context.Context, name string) {
+				t.Helper()
+				select {
+				case <-ctx.Done():
+				case <-time.After(time.Second):
+					t.Fatalf("%s did not complete", name)
+				}
+			}
+			assertNotDone := func(ctx context.Context, name string) {
+				t.Helper()
+				select {
+				case <-ctx.Done():
+					t.Fatalf("%s completed while its job was still running", name)
+				default:
+				}
+			}
+
+			start(cron)
+			waitForRun(1)
+			oldRun := cron.Stop()
+			repeatedOldRun := cron.Stop()
+			assertNotDone(oldRun, "old run Stop context")
+			assertNotDone(repeatedOldRun, "repeated old run Stop context")
+
+			start(cron)
+			waitForRun(2)
+			newRun := cron.Stop()
+			assertNotDone(newRun, "new run Stop context")
+
+			releases[tt.firstFinished-1] <- struct{}{}
+			if tt.firstFinished == 1 {
+				waitForDone(oldRun, "old run Stop context")
+				waitForDone(repeatedOldRun, "repeated old run Stop context")
+				assertNotDone(newRun, "new run Stop context")
+			} else {
+				waitForDone(newRun, "new run Stop context")
+				assertNotDone(oldRun, "old run Stop context")
+				assertNotDone(repeatedOldRun, "repeated old run Stop context")
+			}
+
+			otherRun := int64(3) - tt.firstFinished
+			releases[otherRun-1] <- struct{}{}
+			waitForDone(oldRun, "old run Stop context")
+			waitForDone(repeatedOldRun, "repeated old run Stop context")
+			waitForDone(newRun, "new run Stop context")
+			require.Equal(t, int64(2), runs.Load())
+		})
+	}
 }
 
 func TestCron_IsRunning(t *testing.T) {
