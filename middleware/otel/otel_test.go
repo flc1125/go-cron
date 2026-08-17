@@ -42,6 +42,27 @@ func (m *mockJob) Run(ctx context.Context) error {
 	return m.err
 }
 
+type fixedDelaySchedule time.Duration
+
+func (s fixedDelaySchedule) Next(now time.Time) time.Time {
+	return now.Add(time.Duration(s))
+}
+
+type scheduledEntryJob struct {
+	name    string
+	entries chan<- *cron.Entry
+}
+
+func (j *scheduledEntryJob) Name() string {
+	return j.name
+}
+
+func (j *scheduledEntryJob) Run(ctx context.Context) error {
+	entry, _ := cron.EntryFromContext(ctx)
+	j.entries <- entry
+	return nil
+}
+
 func TestTracing(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -91,6 +112,37 @@ func TestTracing(t *testing.T) {
 			tt.extraTesting(t, span)
 		})
 	}
+}
+
+func TestTracing_ScheduledEntrySnapshot(t *testing.T) {
+	defer imsb.Reset()
+
+	entries := make(chan *cron.Entry, 1)
+	c := cron.New(cron.WithMiddleware(middleware))
+	id := c.Schedule(fixedDelaySchedule(500*time.Millisecond), &scheduledEntryJob{
+		name:    "scheduled-entry",
+		entries: entries,
+	})
+	c.Start()
+	defer c.Stop()
+
+	var entry *cron.Entry
+	select {
+	case entry = <-entries:
+		require.NotNil(t, entry)
+	case <-time.After(2 * time.Second):
+		require.FailNow(t, "timed out waiting for scheduled entry")
+	}
+	<-c.Stop().Done()
+
+	require.Len(t, imsb.GetSpans(), 1)
+	span := imsb.GetSpans()[0]
+	assert.Equal(t, id, entry.ID())
+	assert.False(t, entry.Prev().IsZero())
+	assert.True(t, entry.Next().After(entry.Prev()))
+	assert.Contains(t, span.Attributes, attribute.Int("cron.job.id", int(id)))
+	assert.Contains(t, span.Attributes, attrJobPrevTime.String(entry.Prev().String()))
+	assert.Contains(t, span.Attributes, attrJobNextTime.String(entry.Next().String()))
 }
 
 func TestTracing_PassThroughWithoutNamedEntryJob(t *testing.T) {
