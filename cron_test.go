@@ -450,6 +450,27 @@ func TestCron_UseConcurrentSchedule(t *testing.T) {
 	assert.Len(t, cron.Entries(), iterations*schedulers)
 }
 
+func TestCron_UseFromMiddlewareRegistration(t *testing.T) {
+	cron := New()
+	cron.Use(func(next Job) Job {
+		cron.Use(NoopMiddleware())
+		return next
+	})
+
+	scheduled := make(chan EntryID, 1)
+	go func() {
+		scheduled <- cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) error { return nil }))
+	}()
+
+	select {
+	case id := <-scheduled:
+		entry := cron.Entry(id)
+		assert.True(t, entry.Valid())
+	case <-time.After(time.Second):
+		t.Fatal("middleware registration deadlocked while calling Use")
+	}
+}
+
 // Test that the cron is run in the local time zone (as opposed to UTC).
 func TestLocalTimezone(t *testing.T) {
 	wg := &sync.WaitGroup{}
