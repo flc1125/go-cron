@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,9 +13,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newBufferLogger() (*bytes.Buffer, cron.Logger) {
+type signalLogger struct {
+	cron.Logger
+	once   sync.Once
+	logged chan struct{}
+}
+
+func newBufferLogger() (*bytes.Buffer, *signalLogger) {
 	buf := new(bytes.Buffer)
-	return buf, cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags))
+	return buf, &signalLogger{
+		Logger: cron.VerbosePrintfLogger(log.New(buf, "", log.LstdFlags)),
+		logged: make(chan struct{}),
+	}
+}
+
+func (l *signalLogger) Error(err error, msg string, keysAndValues ...any) {
+	l.Logger.Error(err, msg, keysAndValues...)
+	l.once.Do(func() {
+		close(l.logged)
+	})
+}
+
+func (l *signalLogger) wait(t *testing.T) {
+	t.Helper()
+
+	select {
+	case <-l.logged:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for recovery log")
+	}
 }
 
 type panicJob struct{}
@@ -56,7 +83,8 @@ func TestRecovery_FuncPanic(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	time.Sleep(time.Second)
+	logger.wait(t)
+	<-c.Stop().Done()
 	assert.True(t, strings.Contains(buf.String(), "YOLO"))
 }
 
@@ -76,7 +104,8 @@ func TestRecovery_JobPanic(t *testing.T) {
 	_, err := c.AddJob("* * * * * ?", panicJob{})
 	assert.NoError(t, err)
 
-	time.Sleep(time.Second)
+	logger.wait(t)
+	<-c.Stop().Done()
 	assert.True(t, strings.Contains(buf.String(), "YOLO"))
 }
 
