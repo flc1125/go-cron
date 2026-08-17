@@ -1,15 +1,14 @@
 // Package cron provides a cron job scheduler for Go applications.
 //
 // This package is a fork of robfig/cron with significant improvements including
-// context support, middleware system, better error handling, and enhanced
-// scheduling capabilities.
+// context support, a middleware system, and enhanced scheduling capabilities.
 //
 // # Basic Usage
 //
 // Creating and starting a basic cron scheduler:
 //
 //	c := cron.New()
-//	c.AddFunc("0 30 * * * *", func(ctx context.Context) error {
+//	c.AddFunc("30 * * * *", func(ctx context.Context) error {
 //		fmt.Println("Every hour on the half hour")
 //		return nil
 //	})
@@ -62,16 +61,15 @@
 //
 //	c := cron.New(
 //		cron.WithMiddleware(
-//			recovery.New(),      // Recover from panics
-//			nooverlapping.New(), // Prevent job overlapping
+//			recovery.New(), // Recover from panics
 //		),
 //	)
 //
 //	// Apply middleware to specific jobs
-//	c.AddFunc("* * * * *", myFunc, recovery.New())
+//	c.AddFunc("* * * * *", myFunc, nooverlapping.New())
 //
-//	// Use middleware on running cron
-//	c.Use(recovery.New(), nooverlapping.New())
+//	// Apply middleware to jobs registered after this call
+//	c.Use(nooverlapping.New())
 //
 // Available middleware:
 //   - recovery: Recovers from panics in job execution
@@ -99,6 +97,10 @@
 //   - Value passing between middleware and jobs
 //   - Graceful shutdown coordination
 //
+// [Cron.Stop] does not cancel this context. To cancel running jobs during
+// shutdown, pass a cancellable context with [WithContext] and cancel it
+// explicitly.
+//
 // # Lifecycle Management
 //
 //	c := cron.New()
@@ -115,25 +117,36 @@
 //	// Remove jobs
 //	c.Remove(entryID)
 //
-//	// Stop the scheduler (waits for running jobs)
-//	c.Stop()
+//	// Stop future scheduling and wait for jobs started by this run
+//	<-c.Stop().Done()
+//
+// [Cron.Stop] does not cancel jobs that have already started. The [Cron] may be
+// started again before the context returned by the previous [Cron.Stop] is
+// done; jobs from the two runs may overlap, and each returned context waits
+// only for jobs from its own run.
 //
 //	// Get current entries
 //	entries := c.Entries()
 //
 // # Error Handling
 //
-// Jobs can return errors, which are handled by the configured logger:
+// The scheduler ignores errors returned by [Job.Run]. [WithLogger] configures
+// scheduler messages and does not handle job errors. Handle errors inside the
+// [Job] or with [Middleware]:
 //
 //	c.AddFunc("* * * * *", func(ctx context.Context) error {
 //		if err := doSomething(); err != nil {
+//			recordJobError(err)
 //			return fmt.Errorf("job failed: %w", err)
 //		}
 //		return nil
 //	})
 //
+// Panics are not recovered by default. Configure the recovery middleware
+// explicitly when panic recovery is required.
+//
 // # Thread Safety
 //
-// The cron scheduler is thread-safe and can be safely accessed from multiple
-// goroutines. All public methods are protected by appropriate synchronization.
+// [Cron] is thread-safe and can be safely accessed from multiple goroutines.
+// All public methods are protected by appropriate synchronization.
 package cron

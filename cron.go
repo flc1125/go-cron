@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// Cron keeps track of any number of entries, invoking the associated func as
-// specified by the schedule. It may be started, stopped, and the entries may
-// be inspected while running.
+// Cron keeps track of any number of entries, invoking the associated [Job] as
+// specified by its [Schedule]. It may be started, stopped, and inspected while
+// running.
 type Cron struct {
 	ctx           context.Context
 	entries       []*Entry
@@ -32,7 +32,7 @@ type runState struct {
 	jobs sync.WaitGroup
 }
 
-// ScheduleParser is an interface for schedule spec parsers that return a Schedule
+// ScheduleParser parses schedule specifications into [Schedule] values.
 type ScheduleParser interface {
 	Parse(spec string) (Schedule, error)
 }
@@ -63,23 +63,20 @@ func (s byTime) Less(i, j int) bool {
 	return s[i].next.Before(s[j].next)
 }
 
-// New returns a new Cron job runner, modified by the given options.
+// New returns a new [Cron] job runner, modified by the given [Option] values.
 //
-// Available Settings
+// Available settings:
 //
-//	Time Zone
-//	  Description: The time zone in which schedules are interpreted
-//	  Default:     time.Local
+//   - Time zone: controls how schedules are interpreted. The default is
+//     [time.Local].
+//   - Parser: converts specifications into [Schedule] values using a
+//     [ScheduleParser]. The default accepts the standard cron format described
+//     at https://en.wikipedia.org/wiki/Cron.
+//   - Middleware: wraps submitted [Job] values with [Middleware]. The default
+//     is no middleware.
 //
-//	Parser
-//	  Description: Parser converts cron spec strings into cron.Schedules.
-//	  Default:     Accepts this spec: https://en.wikipedia.org/wiki/Cron
-//
-//	Chain
-//	  Description: Wrap submitted jobs to customize behavior.
-//	  Default:     A chain that recovers panics and logs them to stderr.
-//
-// See "cron.With*" to modify the default behavior.
+// See [WithContext], [WithLocation], [WithSeconds], [WithParser],
+// [WithMiddleware], and [WithLogger] to modify the default behavior.
 func New(opts ...Option) *Cron {
 	c := &Cron{
 		ctx:       context.Background(),
@@ -99,7 +96,8 @@ func New(opts ...Option) *Cron {
 	return c
 }
 
-// Use appends middleware to the chain of jobs registered after Use returns.
+// Use appends middleware to the chain of jobs registered after [Cron.Use]
+// returns.
 // It does not affect previously registered jobs and is safe to call concurrently
 // with job registration.
 func (c *Cron) Use(middleware ...Middleware) {
@@ -109,16 +107,16 @@ func (c *Cron) Use(middleware ...Middleware) {
 	c.middlewares = append(c.middlewares, middleware...)
 }
 
-// AddFunc adds a func to the Cron to be run on the given schedule.
-// The spec is parsed using the time zone of this Cron instance as the default.
-// An opaque id is returned that can be used to later remove it.
+// AddFunc adds a function to the [Cron] to be run on the given schedule.
+// The spec is parsed using the time zone of this [Cron] instance as the default.
+// An opaque [EntryID] is returned that can be used to later remove it.
 func (c *Cron) AddFunc(spec string, cmd func(ctx context.Context) error, middlewares ...Middleware) (EntryID, error) {
 	return c.AddJob(spec, JobFunc(cmd), middlewares...)
 }
 
-// AddJob adds a Job to the Cron to be run on the given schedule.
-// The spec is parsed using the time zone of this Cron instance as the default.
-// An opaque id is returned that can be used to later remove it.
+// AddJob adds a [Job] to the [Cron] to be run on the given schedule.
+// The spec is parsed using the time zone of this [Cron] instance as the default.
+// An opaque [EntryID] is returned that can be used to later remove it.
 func (c *Cron) AddJob(spec string, cmd Job, middlewares ...Middleware) (EntryID, error) {
 	schedule, err := c.parser.Parse(spec)
 	if err != nil {
@@ -127,8 +125,8 @@ func (c *Cron) AddJob(spec string, cmd Job, middlewares ...Middleware) (EntryID,
 	return c.Schedule(schedule, cmd, middlewares...), nil
 }
 
-// Schedule adds a Job to the Cron to be run on the given schedule.
-// The job is wrapped with the configured Chain.
+// Schedule adds a [Job] to the [Cron] to be run on the given [Schedule].
+// The job is wrapped with the configured [Middleware].
 func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) EntryID {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
@@ -151,7 +149,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) E
 	return entry.id
 }
 
-// Entries returns a snapshot of the cron entries.
+// Entries returns a snapshot of the [Cron] entries.
 func (c *Cron) Entries() []Entry {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
@@ -163,12 +161,13 @@ func (c *Cron) Entries() []Entry {
 	return c.entrySnapshot()
 }
 
-// Location gets the time zone location
+// Location returns the [time.Location] used by the [Cron].
 func (c *Cron) Location() *time.Location {
 	return c.location
 }
 
-// Entry returns a snapshot of the given entry, or nil if it couldn't be found.
+// Entry returns a snapshot of the given [Entry], or a zero [Entry] if it could
+// not be found.
 func (c *Cron) Entry(id EntryID) Entry {
 	for _, entry := range c.Entries() {
 		if id == entry.id {
@@ -178,7 +177,7 @@ func (c *Cron) Entry(id EntryID) Entry {
 	return Entry{}
 }
 
-// Remove an entry from being run in the future.
+// Remove prevents the [Entry] identified by id from running in the future.
 func (c *Cron) Remove(id EntryID) {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
@@ -190,8 +189,8 @@ func (c *Cron) Remove(id EntryID) {
 }
 
 // Start the cron scheduler in its own goroutine, or no-op if already started.
-// Jobs started by each successful call are tracked independently from jobs
-// left running by earlier calls.
+// Calls to [Job.Run] started by each successful call are tracked independently
+// from jobs left running by earlier calls.
 func (c *Cron) Start() {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
@@ -204,9 +203,9 @@ func (c *Cron) Start() {
 	go c.run(state)
 }
 
-// Run the cron scheduler, or no-op if already running. Jobs started by each
-// successful call are tracked independently from jobs left running by earlier
-// calls.
+// Run starts the cron scheduler in the current goroutine, or no-ops if it is
+// already running. Calls to [Job.Run] started by each successful call are
+// tracked independently from jobs left running by earlier calls.
 func (c *Cron) Run() {
 	c.runningMu.Lock()
 	if c.running {
@@ -308,10 +307,11 @@ func (c *Cron) now() time.Time {
 	return time.Now().In(c.location)
 }
 
-// Stop stops the cron scheduler if it is running. A context is returned so the
-// caller can wait for jobs started by that run to complete. If the scheduler is
-// not running, the context waits for jobs from the most recent run. It does not
-// wait for jobs started by later calls to Start or Run.
+// Stop stops the cron scheduler if it is running. A [context.Context] is
+// returned so the caller can wait for jobs started by that run to complete. If
+// the scheduler is not running, the context waits for jobs from the most recent
+// run. It does not wait for jobs started by later calls to [Cron.Start] or
+// [Cron.Run].
 func (c *Cron) Stop() context.Context {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()

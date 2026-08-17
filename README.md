@@ -44,15 +44,11 @@ func main() {
 	c := cron.New(
 		cron.WithSeconds(), // if you want to use seconds, you can use this option
 		cron.WithMiddleware(
-			recovery.New(),      // recover panic
-			nooverlapping.New(), // prevent job overlapping
+			recovery.New(), // recover panic
 		),
 		cron.WithContext(context.Background()), // use custom context
 		// ... other options
 	)
-
-	// use middleware
-	c.Use(recovery.New(), nooverlapping.New()) // use middleware
 
 	// add job
 	entryID, _ := c.AddJob("* * * * * *", cron.JobFunc(func(ctx context.Context) error {
@@ -65,13 +61,13 @@ func main() {
 	_, _ = c.AddFunc("* * * * * *", func(ctx context.Context) error {
 		// do something
 		return nil
-	}, recovery.New(), nooverlapping.New()) // use middleware for this job
+	}, nooverlapping.New()) // use middleware for this job
 
 	// start cron
 	c.Start()
 
-	// stop cron
-	c.Stop()
+	// stop future scheduling and wait for jobs started by this run
+	<-c.Stop().Done()
 }
 ```
 
@@ -82,6 +78,53 @@ func main() {
 - [nooverlapping](./middleware/nooverlapping): Prevents concurrent execution of the same job.
 - [distributednooverlapping](./middleware/distributednooverlapping): Prevents concurrent execution across multiple instances using distributed locking.
 - [otel](./middleware/otel): Provides OpenTelemetry integration for job execution tracing and metrics.
+
+### Registration and order
+
+`WithMiddleware` configures the initial middleware chain. `Use` appends middleware
+only for jobs registered after `Use` returns; it does not modify existing entries.
+`Use` is safe to call concurrently with job registration.
+
+Middleware runs in registration order. For example, `Chain(m1, m2)` produces
+`m1(m2(job))`. Cron-level middleware configured through `WithMiddleware` or `Use`
+runs outside middleware passed to an individual `AddFunc`, `AddJob`, or `Schedule`
+call.
+
+## Lifecycle
+
+`Stop` prevents the current scheduler run from starting more jobs. It does not
+cancel jobs that have already started. The returned context is done after jobs
+started by that run have completed:
+
+```go
+c.Start()
+// ...
+<-c.Stop().Done()
+```
+
+A stopped `Cron` may be started again without waiting for the previous Stop
+context. Jobs left running by the previous run may overlap jobs started by the
+new run. Each Stop context waits only for its own run and is not extended by a
+later `Start` or `Run` call.
+
+## Job errors and panics
+
+The scheduler ignores the error returned by `Job.Run`. `WithLogger` configures
+scheduler messages; it does not log or otherwise handle Job errors. Handle errors
+inside the Job or with middleware. Middleware such as `otel` may observe an error
+before returning it to the scheduler.
+
+Panic recovery is not enabled by default. Add the
+[`recovery`](./middleware/recovery) middleware explicitly when jobs or downstream
+middleware must be recovered.
+
+## Entry context
+
+Jobs started by the scheduler can call `EntryFromContext` to inspect a stable
+Entry snapshot for that execution. `Prev` is the scheduled activation time for
+the current execution, and `Next` is the next scheduled activation time already
+calculated by the scheduler. The scheduler does not mutate that snapshot after
+the Job starts.
 
 ## License
 
