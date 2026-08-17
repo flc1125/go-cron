@@ -78,6 +78,12 @@ func (l contextCheckingLock) Unlock(ctx context.Context) error {
 	return nil
 }
 
+type scheduledTestSchedule time.Duration
+
+func (s scheduledTestSchedule) Next(now time.Time) time.Time {
+	return now.Add(time.Duration(s))
+}
+
 type spyMutex struct {
 	lock     Lock
 	acquired bool
@@ -223,6 +229,44 @@ func TestMiddleware_RunBranches(t *testing.T) {
 				assert.Equal(t, tt.wantUnlocks, tt.mutex.lock.(*spyLock).unlockCalls)
 			}
 		})
+	}
+}
+
+func TestMiddleware_ScheduledEntrySnapshotRetainsOriginalJob(t *testing.T) {
+	mutex := &spyMutex{lock: &spyLock{}, acquired: true}
+	entries := make(chan *cron.Entry, 1)
+	job := testJob{
+		name: "scheduled",
+		ttl:  time.Second,
+		Job: cron.JobFunc(func(ctx context.Context) error {
+			entry, _ := cron.EntryFromContext(ctx)
+			entries <- entry
+			return nil
+		}),
+	}
+	c := cron.New(cron.WithMiddleware(New(mutex, WithLogger(cron.DiscardLogger))))
+	id := c.Schedule(scheduledTestSchedule(500*time.Millisecond), job)
+	c.Start()
+	defer c.Stop()
+
+	var entry *cron.Entry
+	select {
+	case entry = <-entries:
+		if !assert.NotNil(t, entry) {
+			return
+		}
+	case <-time.After(2 * time.Second):
+		assert.FailNow(t, "timed out waiting for scheduled entry")
+	}
+	<-c.Stop().Done()
+
+	entryJob, ok := entry.Job().(testJob)
+	assert.True(t, ok)
+	assert.Equal(t, id, entry.ID())
+	assert.Equal(t, job.name, entryJob.name)
+	assert.Equal(t, 1, mutex.lockCalls)
+	if assert.NotNil(t, mutex.job) {
+		assert.Equal(t, job.name, mutex.job.GetMutexKey())
 	}
 }
 

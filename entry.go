@@ -59,7 +59,11 @@ func newEntry(id EntryID, schedule Schedule, job Job, opts ...EntryOption) *Entr
 	middlewares := append([]Middleware{
 		func(job Job) Job {
 			return JobFunc(func(ctx context.Context) error {
-				return job.Run(WithEntryContext(ctx, entry))
+				runEntry := entry
+				if snapshot, ok := executionEntryFromContext(ctx, entry); ok {
+					runEntry = snapshot
+				}
+				return job.Run(WithEntryContext(ctx, runEntry))
 			})
 		},
 	}, entry.middlewares...)
@@ -101,12 +105,37 @@ func (e *Entry) Job() Job {
 
 type entryContextKey struct{}
 
-// WithEntryContext returns a new context with the given EntryID.
+type executionEntryContextKey struct{}
+
+type executionEntryContextValue struct {
+	registered *Entry
+	snapshot   *Entry
+}
+
+func withExecutionEntryContext(ctx context.Context, registered, snapshot *Entry) context.Context {
+	return context.WithValue(ctx, executionEntryContextKey{}, executionEntryContextValue{
+		registered: registered,
+		snapshot:   snapshot,
+	})
+}
+
+func executionEntryFromContext(ctx context.Context, registered *Entry) (*Entry, bool) {
+	value, ok := ctx.Value(executionEntryContextKey{}).(executionEntryContextValue)
+	if !ok || value.registered != registered {
+		return nil, false
+	}
+	return value.snapshot, true
+}
+
+// WithEntryContext returns a new context with the given Entry.
 func WithEntryContext(ctx context.Context, entry *Entry) context.Context {
 	return context.WithValue(ctx, entryContextKey{}, entry)
 }
 
-// EntryFromContext returns the EntryID from the context.
+// EntryFromContext returns the Entry associated with the current job execution.
+// Jobs started by Cron receive a stable snapshot for that execution. Direct
+// Entry.WrappedJob calls without a scheduler execution context receive the
+// registered Entry.
 func EntryFromContext(ctx context.Context) (*Entry, bool) {
 	entry, ok := ctx.Value(entryContextKey{}).(*Entry)
 	return entry, ok

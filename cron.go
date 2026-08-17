@@ -245,9 +245,11 @@ func (c *Cron) run() {
 					if e.next.After(now) || e.next.IsZero() {
 						break
 					}
-					c.startJob(e.WrappedJob())
 					e.prev = e.next
 					e.next = e.schedule.Next(now)
+					executionEntry := *e
+					ctx := withExecutionEntryContext(c.ctx, e, &executionEntry)
+					c.startJob(ctx, e.WrappedJob())
 					c.logger.Info("run", "now", now, "entry", e.ID(), "next", e.next)
 				}
 
@@ -279,10 +281,10 @@ func (c *Cron) run() {
 	}
 }
 
-// startJob runs the given job in a new goroutine.
-func (c *Cron) startJob(j Job) {
+// startJob runs the given job with the given context in a new goroutine.
+func (c *Cron) startJob(ctx context.Context, j Job) {
 	c.jobWaiter.Go(func() {
-		j.Run(c.ctx) //nolint:errcheck
+		j.Run(ctx) //nolint:errcheck
 	})
 }
 
