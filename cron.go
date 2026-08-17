@@ -11,20 +11,21 @@ import (
 // specified by the schedule. It may be started, stopped, and the entries may
 // be inspected while running.
 type Cron struct {
-	ctx         context.Context
-	entries     []*Entry
-	middlewares []Middleware
-	stop        chan struct{}
-	add         chan *Entry
-	remove      chan EntryID
-	snapshot    chan chan []Entry
-	running     bool
-	logger      Logger
-	runningMu   sync.Mutex
-	location    *time.Location
-	parser      ScheduleParser
-	nextID      EntryID
-	jobWaiter   sync.WaitGroup
+	ctx           context.Context
+	entries       []*Entry
+	middlewares   []Middleware
+	middlewaresMu sync.Mutex
+	stop          chan struct{}
+	add           chan *Entry
+	remove        chan EntryID
+	snapshot      chan chan []Entry
+	running       bool
+	logger        Logger
+	runningMu     sync.Mutex
+	location      *time.Location
+	parser        ScheduleParser
+	nextID        EntryID
+	jobWaiter     sync.WaitGroup
 }
 
 // ScheduleParser is an interface for schedule spec parsers that return a Schedule
@@ -95,8 +96,13 @@ func New(opts ...Option) *Cron {
 	return c
 }
 
-// Use adds a middleware to the chain of all jobs.
+// Use appends middleware to the chain of jobs registered after Use returns.
+// It does not affect previously registered jobs and is safe to call concurrently
+// with job registration.
 func (c *Cron) Use(middleware ...Middleware) {
+	c.middlewaresMu.Lock()
+	defer c.middlewaresMu.Unlock()
+
 	c.middlewares = append(c.middlewares, middleware...)
 }
 
@@ -124,9 +130,14 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) E
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	c.nextID++
+	c.middlewaresMu.Lock()
+	entryMiddlewares := make([]Middleware, 0, len(c.middlewares)+len(middlewares))
+	entryMiddlewares = append(entryMiddlewares, c.middlewares...)
+	c.middlewaresMu.Unlock()
+	entryMiddlewares = append(entryMiddlewares, middlewares...)
 	entry := newEntry(
 		c.nextID, schedule, cmd, WithEntryMiddlewares(
-			append(c.middlewares, middlewares...)...,
+			entryMiddlewares...,
 		),
 	)
 	if !c.running {

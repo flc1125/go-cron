@@ -353,16 +353,122 @@ func TestCron_ScheduleWithMiddleware(t *testing.T) {
 }
 
 func TestCron_Use(t *testing.T) {
+	var calls []string
+	recordMiddleware := func(name string) Middleware {
+		return func(next Job) Job {
+			return JobFunc(func(ctx context.Context) error {
+				calls = append(calls, name+":before")
+				err := next.Run(ctx)
+				calls = append(calls, name+":after")
+				return err
+			})
+		}
+	}
+	recordJob := func(name string) Job {
+		return JobFunc(func(context.Context) error {
+			calls = append(calls, name)
+			return nil
+		})
+	}
+
 	cron := New()
 	assert.Len(t, cron.middlewares, 0)
 
-	cron.Use(NoopMiddleware(), NoopMiddleware(), func(next Job) Job {
-		return JobFunc(func(ctx context.Context) error {
-			return next.Run(ctx)
+	beforeUse := cron.Schedule(Every(time.Hour), recordJob("before-use"), recordMiddleware("task"))
+	cron.Use(recordMiddleware("global"))
+	afterUse := cron.Schedule(Every(time.Hour), recordJob("after-use"), recordMiddleware("task"))
+	cron.Use(recordMiddleware("later"))
+	afterLaterUse := cron.Schedule(Every(time.Hour), recordJob("after-later-use"), recordMiddleware("task"))
+
+	assert.Len(t, cron.middlewares, 2)
+
+	tests := []struct {
+		name string
+		id   EntryID
+		want []string
+	}{
+		{
+			name: "registered before Use",
+			id:   beforeUse,
+			want: []string{"task:before", "before-use", "task:after"},
+		},
+		{
+			name: "registered after Use",
+			id:   afterUse,
+			want: []string{"global:before", "task:before", "after-use", "task:after", "global:after"},
+		},
+		{
+			name: "registered after later Use",
+			id:   afterLaterUse,
+			want: []string{
+				"global:before", "later:before", "task:before", "after-later-use",
+				"task:after", "later:after", "global:after",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			calls = nil
+			entry := cron.Entry(tt.id)
+			require.True(t, entry.Valid())
+			require.NoError(t, entry.WrappedJob().Run(t.Context()))
+			assert.Equal(t, tt.want, calls)
 		})
+	}
+}
+
+func TestCron_UseConcurrentSchedule(t *testing.T) {
+	const iterations = 100
+	const schedulers = 8
+
+	cron := New()
+	start := make(chan struct{})
+	job := JobFunc(func(context.Context) error { return nil })
+	var wg sync.WaitGroup
+
+	wg.Go(func() {
+		<-start
+		for range iterations {
+			cron.Use(NoopMiddleware())
+		}
 	})
 
-	assert.Len(t, cron.middlewares, 3)
+	for range schedulers {
+		wg.Go(func() {
+			<-start
+			for range iterations {
+				cron.Schedule(Every(time.Hour), job, NoopMiddleware())
+			}
+		})
+	}
+
+	close(start)
+	wg.Wait()
+
+	assert.Len(t, cron.middlewares, iterations)
+	assert.Len(t, cron.Entries(), iterations*schedulers)
+}
+
+func TestCron_UseFromMiddlewareRegistration(t *testing.T) {
+	cron := New()
+	cron.Use(func(next Job) Job {
+		cron.Use(NoopMiddleware())
+		return next
+	})
+
+	scheduled := make(chan EntryID, 1)
+	go func() {
+		scheduled <- cron.Schedule(Every(time.Hour), JobFunc(func(context.Context) error { return nil }))
+	}()
+
+	select {
+	case id := <-scheduled:
+		entry := cron.Entry(id)
+		assert.True(t, entry.Valid())
+	case <-time.After(time.Second):
+		t.Fatal("middleware registration deadlocked while calling Use")
+	}
 }
 
 // Test that the cron is run in the local time zone (as opposed to UTC).
