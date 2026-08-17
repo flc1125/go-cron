@@ -95,8 +95,13 @@ func New(opts ...Option) *Cron {
 	return c
 }
 
-// Use adds a middleware to the chain of all jobs.
+// Use appends middleware to the chain of jobs registered after Use returns.
+// It does not affect previously registered jobs and is safe to call concurrently
+// with job registration.
 func (c *Cron) Use(middleware ...Middleware) {
+	c.runningMu.Lock()
+	defer c.runningMu.Unlock()
+
 	c.middlewares = append(c.middlewares, middleware...)
 }
 
@@ -124,9 +129,12 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job, middlewares ...Middleware) E
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	c.nextID++
+	entryMiddlewares := make([]Middleware, 0, len(c.middlewares)+len(middlewares))
+	entryMiddlewares = append(entryMiddlewares, c.middlewares...)
+	entryMiddlewares = append(entryMiddlewares, middlewares...)
 	entry := newEntry(
 		c.nextID, schedule, cmd, WithEntryMiddlewares(
-			append(c.middlewares, middlewares...)...,
+			entryMiddlewares...,
 		),
 	)
 	if !c.running {
