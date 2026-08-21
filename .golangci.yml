@@ -52,7 +52,7 @@ linters:
       replace-allow-list:
         - github.com/flc1125/go-cron/v4
       toolchain-forbidden: true
-      go-version-pattern: '^1\.25\.0$'
+      go-version-pattern: '^1\.26\.0$'
     nolintlint:
       require-specific: true
     usetesting:
@@ -76,5 +76,6 @@ formatters:
     - goimports
   settings:
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
       module-path: github.com/flc1125/go-cron/v4
