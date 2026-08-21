@@ -14,7 +14,7 @@ jobs:
     name: "go test"
     strategy:
       matrix:
-        go-version: [ 1.25.x, 1.26.x ]
+        go-version: [ 1.25.x, 1.26.x, 1.27.x ]
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -42,7 +42,7 @@ jobs:
         run: make test-race
 
       - name: Verify validation failures propagate
-        if: matrix.go-version == '1.26.x'
+        if: matrix.go-version == '1.27.x'
         run: |
           if make GO=false test; then
             echo "make test unexpectedly succeeded"
@@ -54,11 +54,11 @@ jobs:
           fi
 
       - name: Generate coverage
-        if: matrix.go-version == '1.26.x' && matrix.platform == 'ubuntu-latest'
+        if: matrix.go-version == '1.27.x' && matrix.platform == 'ubuntu-latest'
         run: make test-coverage
 
       - name: Upload coverage to Codecov
-        if: matrix.go-version == '1.26.x' && matrix.platform == 'ubuntu-latest'
+        if: matrix.go-version == '1.27.x' && matrix.platform == 'ubuntu-latest'
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

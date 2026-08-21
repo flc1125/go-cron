@@ -106,7 +106,7 @@ go-mod-tidy/%: DIR=$*
 go-mod-tidy/%:
 	@echo "$(GO) mod tidy in $(DIR)" \
 		&& cd $(DIR) \
-		&& $(GO) mod tidy -compat=1.22.0
+		&& $(GO) mod tidy -compat=1.25.0
 
 .PHONY: lint
 lint: go-mod-tidy golangci-lint
