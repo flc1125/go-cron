@@ -10,7 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedVersion = "go 1.25.0"
+const expectedVersion = "go 1.25.0"
+
+func expectedVersionFor(file string) string {
+	if filepath.Clean(file) == filepath.Join("internal", "tools", "go.mod") {
+		return "go 1.26.0"
+	}
+	return expectedVersion
+}
 
 func TestAllGoModVersions(t *testing.T) {
 	var modFiles []string
@@ -40,7 +47,7 @@ func TestAllGoModVersions(t *testing.T) {
 				line = strings.TrimSpace(line)
 				if strings.HasPrefix(line, "go ") {
 					goVersionFound = true
-					assert.Equal(t, expectedVersion, line)
+					assert.Equal(t, expectedVersionFor(file), line)
 					break
 				}
 			}
