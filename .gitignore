@@ -22,3 +22,5 @@ _backup
 _example
 .tools
 .docs
+.agents/
+skills-lock.json
