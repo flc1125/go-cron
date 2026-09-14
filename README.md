@@ -126,6 +126,10 @@ the current execution, and `Next` is the next scheduled activation time already
 calculated by the scheduler. The scheduler does not mutate that snapshot after
 the Job starts.
 
+## Releasing
+
+See [Releasing go-cron](RELEASING.md) for the release procedure.
+
 ## License
 
 - The MIT License (MIT). Please see [License File](LICENSE) for more information.
