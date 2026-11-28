@@ -18,7 +18,7 @@ require (
 	github.com/flc1125/go-cron/middleware/otel/v4 v4.14.0
 	github.com/flc1125/go-cron/middleware/recovery/v4 v4.14.0
 	github.com/flc1125/go-cron/v4 v4.14.0
-	github.com/redis/go-redis/v9 v9.24.0
+	github.com/redis/go-redis/v9 v9.24.1
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel/sdk v1.47.0
 )
